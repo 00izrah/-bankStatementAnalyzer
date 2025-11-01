@@ -54,14 +54,6 @@ The Bank Statement Analyzer is a comprehensive web application designed to help 
 - Python 3.8 or higher
 - Django 5.0+
 - SQLite (default) or PostgreSQL
-- 512MB RAM minimum (2GB recommended)
-- 1GB storage space
-
-### Client Requirements
-- Modern web browser (Chrome, Firefox, Safari, Edge)
-- JavaScript enabled
-- Internet connection
-- PDF viewer capability
 
 ### Dependencies
 ```
@@ -413,32 +405,6 @@ To add support for a new bank:
 - Slow internet connection
 - Solution: Compress PDF, check connection
 
-## Contributing
-
-### Development Guidelines
-1. Follow PEP 8 style guide
-2. Write comprehensive tests
-3. Document new features
-4. Use meaningful commit messages
-
-### Adding New Features
-1. Create feature branch
-2. Implement with tests
-3. Update documentation
-4. Submit pull request
-
-### Bug Reports
-1. Use issue templates
-2. Provide reproduction steps
-3. Include error messages
-4. Specify environment details
-
-### Code Review Process
-1. All changes require review
-2. Tests must pass
-3. Documentation must be updated
-4. Security review for sensitive changes
-
 ## License
 
 This project is licensed under the MIT License. See the LICENSE file for details.
@@ -456,18 +422,7 @@ This project is licensed under the MIT License. See the LICENSE file for details
 - API documentation: Available in code comments
 - User guides: Available in application
 
-### Contact
-- Email: support@bankstatementanalyzer.com
-- GitHub Issues: For bug reports and feature requests
-- Documentation: For usage questions
-
-### Updates
-- Regular security updates
-- Feature releases quarterly
-- Bug fixes as needed
-- Compatibility updates for new bank formats
-
----
+--
 
 **Last Updated**: January 2025
 **Version**: 1.0.0
