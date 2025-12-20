@@ -3,9 +3,9 @@ from .models import UploadedFile, Transaction
 
 @admin.register(UploadedFile)
 class UploadedFileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'bank_name', 'uploaded_at', 'processed')
-    list_filter = ('bank_name', 'processed', 'uploaded_at')
-    search_fields = ('user__username', 'bank_name')
+    list_display = ('user', 'uploaded_at', 'transaction_count', 'processed')
+    list_filter = ('processed', 'uploaded_at')
+    search_fields = ('user__username',)
 
 @admin.register(Transaction)
 class TransactionAdmin(admin.ModelAdmin):

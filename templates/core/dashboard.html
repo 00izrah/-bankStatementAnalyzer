@@ -1,4 +1,6 @@
 {% extends 'base.html' %}
+{% load humanize %}
+{% load custom_filters %}
 
 {% block title %}Dashboard - Bank Statement Analyzer{% endblock %}
 
@@ -78,6 +80,56 @@
             <canvas id="weeklyChart" height="100"></canvas>
         </div>
 
+        <!-- Uploaded Statements Management -->
+        {% if files %}
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-gray-900">Uploaded Statements ({{ files|length }})</h3>
+                <form method="post" action="{% url 'clear_all_data' %}" onsubmit="return confirm('Are you sure you want to delete ALL statements and transactions? This cannot be undone!');">
+                    {% csrf_token %}
+                    <button type="submit" class="text-sm text-red-600 hover:text-red-800 font-medium">Clear All Data</button>
+                </form>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Upload Date</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transactions</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for file in files %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {{ file.uploaded_at|date:"M d, Y H:i" }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                {{ file.transaction_count }} transactions
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {% if file.processed %}
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Processed</span>
+                                {% else %}
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <form method="post" action="{% url 'delete_statement' file.id %}" class="inline" onsubmit="return confirm('Delete this statement and its {{ file.transaction_count }} transactions?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="text-red-600 hover:text-red-900 font-medium">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Recent Transactions -->
         <div class="bg-white rounded-xl shadow-lg overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-200">
@@ -104,7 +156,7 @@
                                 {{ transaction.description }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium {% if transaction.amount < 0 %}text-red-600{% else %}text-green-600{% endif %}">
-                                ₦{{ transaction.amount|abs|floatformat:2|intcomma }}
+                                ₦{{ transaction.amount|abs_value|floatformat:2|intcomma }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="px-2 py-1 text-xs font-semibold rounded-full 

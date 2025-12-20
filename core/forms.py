@@ -4,10 +4,18 @@ from .models import UploadedFile, Category, Transaction
 class UploadStatementForm(forms.ModelForm):
     class Meta:
         model = UploadedFile
-        fields = ['file', 'bank_name']
+        fields = ['file']
         widgets = {
-            'file': forms.FileInput(attrs={'class': 'form-input mt-1 block w-full'}),
-            'bank_name': forms.TextInput(attrs={'class': 'form-input mt-1 block w-full'}),
+            'file': forms.FileInput(attrs={
+                'class': 'form-input mt-1 block w-full',
+                'accept': '.pdf',
+            }),
+        }
+        labels = {
+            'file': 'Bank Statement (PDF)',
+        }
+        help_texts = {
+            'file': 'Upload your bank statement PDF. Works with all Nigerian banks.',
         }
 
 class CategoryForm(forms.ModelForm):

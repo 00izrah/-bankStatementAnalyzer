@@ -30,11 +30,11 @@ class UploadedFile(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     file = models.FileField(upload_to='statements/')
     uploaded_at = models.DateTimeField(auto_now_add=True)
-    bank_name = models.CharField(max_length=100)
     processed = models.BooleanField(default=False)
+    transaction_count = models.IntegerField(default=0)
 
     def __str__(self):
-        return f"{self.bank_name} statement - {self.uploaded_at.strftime('%Y-%m-%d')}"
+        return f"Statement - {self.uploaded_at.strftime('%Y-%m-%d %H:%M')}"
 
 class Transaction(models.Model):
     uploaded_file = models.ForeignKey(UploadedFile, on_delete=models.CASCADE)
