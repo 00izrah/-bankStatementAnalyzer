@@ -6,7 +6,8 @@ import os
 
 from ..models import UploadedFile, Transaction, Category, calculate_file_hash
 from ..validators import validate_uploaded_file, FileValidationError
-from ..parsers import BANK_PARSERS
+from ..parsers import BANK_PARSERS, get_parser_for_file
+from .categorization_service import CategorizationService
 from .logging_service import AuditLogger, logger
 
 
@@ -128,7 +129,7 @@ class UploadService:
 
     def _parse_file(self, uploaded_file: UploadedFile) -> List[Dict[str, Any]]:
         """Parse the uploaded file and extract transactions."""
-        parser_class = BANK_PARSERS.get('universal')
+        parser_class = get_parser_for_file(uploaded_file.file.path)
         if not parser_class:
             raise UploadError('No parser available for processing statements.')
         
@@ -142,7 +143,7 @@ class UploadService:
         if not transactions:
             raise UploadError(
                 'No transactions could be extracted from the file. '
-                'Please ensure this is a valid bank statement PDF.'
+                'Please ensure this is a valid bank statement file (PDF, Excel, or CSV).'
             )
         
         return transactions
@@ -192,11 +193,17 @@ class UploadService:
             
             seen_hashes.add(content_hash)
             
-            # Find category
-            category = self._find_category(trans_data, categories)
+            # Find category and clean merchant name using CategorizationService
+            category, detected_merchant = CategorizationService.categorize_transaction(
+                trans_data['description'],
+                trans_data['amount'],
+                categories
+            )
             if category:
                 self.stats['categorized_count'] += 1
             
+            notes = f"Merchant: {detected_merchant}" if detected_merchant else trans_data.get('notes', '')
+
             # Create transaction object (don't save yet)
             transaction_obj = Transaction(
                 uploaded_file=uploaded_file,
@@ -205,6 +212,7 @@ class UploadService:
                 amount=trans_data['amount'],
                 balance=trans_data['balance'],
                 category=category,
+                notes=notes,
                 content_hash=content_hash,
             )
             transactions_to_create.append(transaction_obj)
@@ -257,17 +265,9 @@ class UploadService:
         categories: Dict[str, Category]
     ) -> Optional[Category]:
         """Find the best matching category for a transaction."""
-        desc = trans_data['description'].lower()
-        
-        # Check parser's suggested category first
-        if trans_data.get('category'):
-            suggested = trans_data['category'].lower()
-            if suggested in categories:
-                return categories[suggested]
-        
-        # Match against category keywords
-        for cat_name, cat in categories.items():
-            if any(keyword in desc for keyword in cat.keyword_list):
-                return cat
-        
-        return None
+        cat, _ = CategorizationService.categorize_transaction(
+            trans_data['description'],
+            Decimal(str(trans_data.get('amount', 0))),
+            categories
+        )
+        return cat

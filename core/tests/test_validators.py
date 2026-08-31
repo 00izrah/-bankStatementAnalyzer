@@ -45,3 +45,10 @@ class FileValidatorsTest(TestCase):
     def test_validate_uploaded_file_valid(self):
         file = SimpleUploadedFile("statement.pdf", b"%PDF-1.4 good content", content_type="application/pdf")
         self.assertTrue(validate_uploaded_file(file))
+
+    def test_validate_not_password_protected_clean(self):
+        from core.validators import validate_not_password_protected
+        file = SimpleUploadedFile("statement.pdf", b"%PDF-1.4 non-encrypted content", content_type="application/pdf")
+        # Should not raise for unencrypted buffer
+        validate_not_password_protected(file)
+

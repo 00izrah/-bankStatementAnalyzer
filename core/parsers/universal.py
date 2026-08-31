@@ -1,415 +1,469 @@
 """
 Universal parser for Nigerian bank statements.
-This parser attempts to extract transactions from any bank statement format.
+Implements a 3-tier hybrid strategy:
+1. Table-based extraction (for native grid / structured table PDFs)
+2. Multi-line block stream collector (for borderless multi-line statements)
+3. Pattern-based line-by-line fallback
+With mathematical running-balance reconciliation.
 """
 import logging
-from .base import BaseStatementParser
 import re
 from datetime import datetime
 from decimal import Decimal
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
+import pdfplumber
+from .base import BaseStatementParser
 
 logger = logging.getLogger('bankstatements')
 
+
 class UniversalBankParser(BaseStatementParser):
     """
-    A flexible parser that works with most Nigerian bank statement formats.
-    It uses multiple patterns to detect transactions.
+    A robust, universal parser tailored for Nigerian bank statement formats
+    (GTBank, Access Bank, Zenith, UBA, FirstBank, Kuda, Moniepoint, OPay, Stanbic, FCMB, etc.).
     """
-    
+
+    DATE_PATTERN = re.compile(
+        r'^\s*(\d{1,2}[-/.](?:[A-Za-z]{3,9}|\d{1,2})[-/.](?:\d{4}|\d{2}))'
+    )
+
     def __init__(self, pdf_path: str):
         super().__init__(pdf_path)
-        self.seen_transactions = set()  # Track unique transactions to avoid duplicates
-        self.previous_balance = None  # Track previous balance for validation
-        self.balance_errors = 0  # Count balance inconsistencies
-    
+        self.seen_transactions = set()
+        self.balance_errors = 0
+        self.strategy_used = None
+
+    def parse(self) -> List[Dict[str, Any]]:
+        """
+        Execute the 3-tier parsing strategy pipeline.
+        """
+        with pdfplumber.open(self.pdf_path) as pdf:
+            # 1. Try Table-based extraction first
+            parsed_tables = self._parse_with_table_extractor(pdf)
+            if parsed_tables and len(parsed_tables) > 0:
+                self.strategy_used = 'table_extractor'
+                self.transactions = parsed_tables
+            else:
+                # 2. Try Multi-line block stream collector
+                parsed_blocks = self._parse_with_block_collector(pdf)
+                if parsed_blocks and len(parsed_blocks) > 0:
+                    self.strategy_used = 'block_collector'
+                    self.transactions = parsed_blocks
+                else:
+                    # 3. Fallback: line-by-line text parsing
+                    self.strategy_used = 'line_patterns'
+                    for page in pdf.pages:
+                        text = page.extract_text()
+                        if text:
+                            self.parse_page(text)
+
+        # 4. Apply mathematical balance reconciliation
+        self._reconcile_running_balances()
+        return self.transactions
+
     def parse_page(self, text: str) -> None:
-        """Parse bank statement page using multiple patterns."""
+        """Fallback line-by-line parser when higher-tier extractors fail."""
         lines = text.split('\n')
-        
-        # First pass: identify if this is a columnar statement
-        is_columnar = self._is_columnar_format(lines)
-        
         i = 0
         while i < len(lines):
-            line = lines[i]
-            
-            # Skip empty lines and headers
-            if not line.strip() or self._is_header(line):
+            line = lines[i].strip()
+            if not line or self._is_header(line):
                 i += 1
                 continue
-            
-            # Try column-based parsing first for structured statements
-            if is_columnar:
-                transaction = self._parse_columnar(line)
-                if transaction:
-                    if self._validate_and_add_transaction(transaction):
-                        i += 1
-                        continue
-            
-            # Check if description spans multiple lines
+
+            # Check if description spans 2-3 lines
             combined_line = line
-            if i + 1 < len(lines) and not self._looks_like_transaction_start(lines[i + 1]):
-                combined_line = line + " " + lines[i + 1].strip()
-            
-            # Try different parsing patterns
-            transaction = (
-                self._parse_pattern_1(combined_line) or
-                self._parse_pattern_2(combined_line) or
-                self._parse_pattern_3(combined_line) or
-                self._parse_pattern_4(combined_line) or
-                self._parse_pattern_5(combined_line)  # New pattern
-            )
-            
-            if transaction:
-                if self._validate_and_add_transaction(transaction):
-                    # Skip next line if we combined lines
-                    if combined_line != line:
-                        i += 1
-            
-            i += 1
-    
-    def _is_columnar_format(self, lines: List[str]) -> bool:
-        """Detect if statement uses a columnar format."""
-        # Look for consistent spacing patterns in first 20 lines
-        for line in lines[:20]:
-            if re.search(r'\d{2}[-/]\w{3}[-/]\d{2,4}\s+.{20,}\s+[\d,]+\.\d{2}\s+[\d,]+\.\d{2}\s+[\d,]+\.\d{2}', line, re.IGNORECASE):
-                return True
-        return False
-    
-    def _looks_like_transaction_start(self, line: str) -> bool:
-        """Check if line looks like the start of a transaction."""
-        # A line starting with a date is likely a new transaction
-        return bool(re.match(r'^\d{2}[-/]\w{3}[-/]\d{2,4}', line, re.IGNORECASE))
-    
-    def _validate_and_add_transaction(self, transaction: Dict[str, Any]) -> bool:
-        """Validate transaction and add if unique."""
-        # Create a unique key for the transaction
-        trans_key = (
-            transaction['date'].isoformat(),
-            transaction['description'].strip()[:50],  # Limit description length for key
-            str(abs(transaction['amount']))
-        )
-        
-        # Check for duplicates
-        if trans_key in self.seen_transactions:
-            return False
-        
-        # Validate balance if available
-        if transaction.get('balance') and transaction['balance'] != Decimal('0'):
-            if self.previous_balance is not None:
-                expected_balance = self.previous_balance + transaction['amount']
-                actual_balance = transaction['balance']
-                
-                # Allow small rounding differences (1 kobo)
-                if abs(expected_balance - actual_balance) > Decimal('0.01'):
-                    self.balance_errors += 1
-                    # Still add transaction, but note the inconsistency
-                    logger.warning(
-                        f"Balance mismatch: Expected {expected_balance}, Got {actual_balance} "
-                        f"for transaction: {transaction.get('description', '')[:40]}"
-                    )
-            
-            self.previous_balance = transaction['balance']
-        
-        # Add transaction
-        self.seen_transactions.add(trans_key)
-        self.transactions.append(transaction)
-        return True
-    
-    def _parse_columnar(self, line: str) -> Optional[Dict[str, Any]]:
-        """
-        Parse columnar format statements with fixed-width columns.
-        This is more accurate for well-structured statements.
-        """
-        # Pattern for: Date Description Debit Credit Balance
-        pattern = r'(\d{2}[-/]\w{3}[-/]\d{2,4})\s+(.+?)\s+([\d,]+\.\d{2})\s+([\d,]+\.\d{2})\s+([\d,]+\.\d{2})\s*$'
-        match = re.search(pattern, line, re.IGNORECASE)
-        
-        if match:
-            try:
-                date_str, description, col1, col2, balance_str = match.groups()
-                
-                date = self.parse_date(date_str)
-                balance = self.clean_amount(balance_str)
-                
-                # Determine which column is debit/credit based on values
-                val1 = self.clean_amount(col1)
-                val2 = self.clean_amount(col2)
-                
-                # Usually: non-zero column is the transaction, other is 0.00
-                if val1 > 0 and val2 == 0:
-                    amount = -val1  # First column is debit
-                elif val2 > 0 and val1 == 0:
-                    amount = val2   # Second column is credit
-                elif val1 > val2:
-                    amount = -val1  # Larger value is likely the debit
+            lookahead = 1
+            while lookahead <= 2 and (i + lookahead) < len(lines):
+                next_line = lines[i + lookahead].strip()
+                if next_line and not self.DATE_PATTERN.match(next_line):
+                    combined_line += " " + next_line
+                    lookahead += 1
                 else:
-                    amount = val2   # Larger value is likely the credit
-                
-                return {
-                    'date': date,
-                    'description': description.strip(),
-                    'amount': amount,
-                    'balance': balance,
-                    'category': None
-                }
-            except Exception as e:
-                pass
-        
+                    break
+
+            txn = self._parse_line_regex(combined_line)
+            if txn and self._validate_and_add_transaction(txn):
+                i += lookahead
+            else:
+                i += 1
+
+    # -------------------------------------------------------------------------
+    # Strategy 1: Table-based Extractor
+    # -------------------------------------------------------------------------
+    def _parse_with_table_extractor(self, pdf) -> List[Dict[str, Any]]:
+        """Extract transactions directly from structured table grids."""
+        extracted = []
+
+        for page in pdf.pages:
+            tables = page.extract_tables()
+            if not tables:
+                continue
+
+            for table in tables:
+                if not table or len(table) < 2:
+                    continue
+
+                col_map = self._detect_table_columns(table[0])
+                if not col_map or 'date' not in col_map:
+                    # Check if second row is the actual header
+                    col_map = self._detect_table_columns(table[1])
+                    start_row = 2 if col_map and 'date' in col_map else None
+                else:
+                    start_row = 1
+
+                if not col_map or 'date' not in col_map:
+                    continue
+
+                for row in table[start_row:]:
+                    if not row or not any(row):
+                        continue
+
+                    txn = self._extract_transaction_from_table_row(row, col_map)
+                    if txn:
+                        trans_key = (
+                            txn['date'].isoformat(),
+                            txn['description'][:60],
+                            str(abs(txn['amount']))
+                        )
+                        if trans_key not in self.seen_transactions:
+                            self.seen_transactions.add(trans_key)
+                            extracted.append(txn)
+
+        return extracted
+
+    def _detect_table_columns(self, header_row: List[Optional[str]]) -> Optional[Dict[str, int]]:
+        """Identify column index mapping from table headers."""
+        if not header_row:
+            return None
+
+        col_map = {}
+        cleaned_headers = [
+            re.sub(r'[\r\n\s]+', ' ', str(cell or '')).strip().lower()
+            for cell in header_row
+        ]
+
+        for idx, h in enumerate(cleaned_headers):
+            if not h:
+                continue
+            if any(k in h for k in ['trans date', 'txn date', 'tx date', 'post date', 'value date', 'date']):
+                if 'date' not in col_map or 'trans' in h or 'txn' in h:
+                    col_map['date'] = idx
+            elif any(k in h for k in ['narrat', 'particular', 'description', 'detail', 'remarks', 'memo', 'tran details']):
+                col_map['description'] = idx
+            elif any(k in h for k in ['debit', 'withdrawal', 'dr amount', 'dr', 'money out', 'debit (ngn)']):
+                col_map['debit'] = idx
+            elif any(k in h for k in ['credit', 'deposit', 'cr amount', 'cr', 'money in', 'credit (ngn)']):
+                col_map['credit'] = idx
+            elif any(k in h for k in ['balance', 'bal', 'closing balance', 'ledger balance']):
+                col_map['balance'] = idx
+            elif 'amount' in h and 'debit' not in col_map and 'credit' not in col_map:
+                col_map['amount'] = idx
+
+        # Need at least Date and one financial column (Amount, Debit, Credit, or Balance)
+        has_amount_col = any(k in col_map for k in ['debit', 'credit', 'amount', 'balance'])
+        if 'date' in col_map and has_amount_col:
+            # If description column wasn't explicitly matched, pick the widest text column
+            if 'description' not in col_map:
+                for idx in range(len(header_row)):
+                    if idx not in col_map.values():
+                        col_map['description'] = idx
+                        break
+            return col_map
+
         return None
-    
+
+    def _extract_transaction_from_table_row(
+        self,
+        row: List[Optional[str]],
+        col_map: Dict[str, int]
+    ) -> Optional[Dict[str, Any]]:
+        """Parse a single table row using detected column mapping."""
+        try:
+            date_cell = row[col_map['date']] if col_map['date'] < len(row) else None
+            if not date_cell:
+                return None
+
+            date_str = str(date_cell).strip()
+            date = self.parse_date(date_str)
+
+            # Extract Narration / Description across mapped cell and fallback unmapped text cells
+            desc_parts = []
+            if 'description' in col_map and col_map['description'] < len(row):
+                desc_val = row[col_map['description']]
+                if desc_val and str(desc_val).strip():
+                    desc_parts.append(str(desc_val).strip())
+
+            # If description is still empty or too short, gather all other non-numeric, non-date cells in the row
+            if not desc_parts or len(" ".join(desc_parts).strip()) < 3:
+                for idx, cell in enumerate(row):
+                    if idx not in (col_map.get('date'), col_map.get('debit'), col_map.get('credit'), col_map.get('amount'), col_map.get('balance')):
+                        if cell is not None:
+                            val = str(cell).strip()
+                            if val and not re.match(r'^\d+$', val) and not re.match(r'^[\d,.-]+$', val):
+                                desc_parts.append(val)
+
+            description = re.sub(r'[\r\n\s]+', ' ', " ".join(desc_parts)).strip()
+            if not description or description.lower() in ('none', 'null', 'nil', '-', 'n/a'):
+                description = "Bank Transaction"
+
+            # Balance
+            balance = Decimal('0.00')
+            if 'balance' in col_map and col_map['balance'] < len(row):
+                bal_cell = row[col_map['balance']]
+                if bal_cell:
+                    balance = self.clean_amount(str(bal_cell))
+
+            # Amounts (Separate Debit / Credit vs Single Amount)
+            amount = Decimal('0.00')
+            if 'debit' in col_map and 'credit' in col_map:
+                dr_cell = row[col_map['debit']] if col_map['debit'] < len(row) else None
+                cr_cell = row[col_map['credit']] if col_map['credit'] < len(row) else None
+
+                dr_val = abs(self.clean_amount(str(dr_cell or '')))
+                cr_val = abs(self.clean_amount(str(cr_cell or '')))
+
+                if dr_val > 0 and cr_val == 0:
+                    amount = -dr_val
+                elif cr_val > 0 and dr_val == 0:
+                    amount = cr_val
+                elif dr_val > 0 and cr_val > 0:
+                    amount = cr_val if cr_val > dr_val else -dr_val
+            elif 'amount' in col_map and col_map['amount'] < len(row):
+                raw_amt = str(row[col_map['amount']] or '')
+                amount = self.clean_amount(raw_amt)
+            elif 'debit' in col_map and col_map['debit'] < len(row):
+                dr_val = abs(self.clean_amount(str(row[col_map['debit']] or '')))
+                if dr_val > 0:
+                    amount = -dr_val
+            elif 'credit' in col_map and col_map['credit'] < len(row):
+                cr_val = abs(self.clean_amount(str(row[col_map['credit']] or '')))
+                if cr_val > 0:
+                    amount = cr_val
+
+            if amount == 0:
+                return None
+
+            return {
+                'date': date,
+                'description': description,
+                'amount': amount,
+                'balance': balance,
+                'category': None,
+            }
+        except Exception:
+            return None
+
+    # -------------------------------------------------------------------------
+    # Strategy 2: Multi-line Block Stream Collector
+    # -------------------------------------------------------------------------
+    def _parse_with_block_collector(self, pdf) -> List[Dict[str, Any]]:
+        """
+        Accumulates all lines belonging to a single transaction block
+        between transaction start date markers.
+        """
+        extracted = []
+        all_lines = []
+
+        for page in pdf.pages:
+            text = page.extract_text()
+            if text:
+                all_lines.extend(text.split('\n'))
+
+        # Group lines into transaction blocks
+        blocks = []
+        current_block = []
+
+        for line in all_lines:
+            line_str = line.strip()
+            if not line_str:
+                continue
+
+            if self.DATE_PATTERN.match(line_str):
+                if current_block:
+                    blocks.append(current_block)
+                current_block = [line_str]
+            elif current_block:
+                current_block.append(line_str)
+
+        if current_block:
+            blocks.append(current_block)
+
+        for block in blocks:
+            txn = self._parse_transaction_block(block)
+            if txn:
+                trans_key = (
+                    txn['date'].isoformat(),
+                    txn['description'][:60],
+                    str(abs(txn['amount']))
+                )
+                if trans_key not in self.seen_transactions:
+                    self.seen_transactions.add(trans_key)
+                    extracted.append(txn)
+
+        return extracted
+
+    def _parse_transaction_block(self, block: List[str]) -> Optional[Dict[str, Any]]:
+        """Parse a continuous multi-line block into a single transaction."""
+        full_text = " ".join(block).strip()
+        # Find date
+        date_match = self.DATE_PATTERN.match(full_text)
+        if not date_match:
+            return None
+
+        date_str = date_match.group(1)
+        try:
+            date = self.parse_date(date_str)
+        except Exception:
+            return None
+
+        # Extract numeric amounts from the text
+        amount_matches = list(re.finditer(r'([\d,]+\.\d{2})', full_text))
+        if not amount_matches:
+            return None
+
+        if len(amount_matches) >= 3:
+            col1 = self.clean_amount(amount_matches[-3].group(1))
+            col2 = self.clean_amount(amount_matches[-2].group(1))
+            balance = self.clean_amount(amount_matches[-1].group(1))
+
+            if col1 > 0 and col2 == 0:
+                amount = -col1
+            elif col2 > 0 and col1 == 0:
+                amount = col2
+            else:
+                amount = -col1 if col1 > 0 else col2
+
+            desc_end_idx = amount_matches[-3].start()
+        elif len(amount_matches) == 2:
+            amt_val = self.clean_amount(amount_matches[-2].group(1))
+            balance = self.clean_amount(amount_matches[-1].group(1))
+            amount = -amt_val
+            desc_end_idx = amount_matches[-2].start()
+        else:
+            amount = -self.clean_amount(amount_matches[-1].group(1))
+            balance = Decimal('0.00')
+            desc_end_idx = amount_matches[-1].start()
+
+        desc_start_idx = date_match.end()
+        if desc_end_idx > desc_start_idx:
+            description = full_text[desc_start_idx:desc_end_idx].strip()
+        else:
+            # Strip date match and numeric amounts from the string
+            remaining = full_text[desc_start_idx:].strip()
+            for m in amount_matches:
+                remaining = remaining.replace(m.group(0), '')
+            description = remaining.strip()
+
+        description = re.sub(r'[\s/|-]+$', '', description).strip()
+        if not description:
+            description = "Bank Transaction"
+
+        return {
+            'date': date,
+            'description': description,
+            'amount': amount,
+            'balance': balance,
+            'category': None,
+        }
+
+    # -------------------------------------------------------------------------
+    # Strategy 3: Regex Line Parser (Fallback)
+    # -------------------------------------------------------------------------
+    def _parse_line_regex(self, line: str) -> Optional[Dict[str, Any]]:
+        """Line-by-line regex parsing for standard single-line statements."""
+        # Pattern 1: Date Desc Debit Credit Balance
+        p1 = r'^(\d{1,2}[-/.](?:[A-Za-z]{3,9}|\d{1,2})[-/.](?:\d{4}|\d{2}))\s+(.+?)\s+([\d,]+\.\d{2})\s+([\d,]+\.\d{2})\s+([\d,]+\.\d{2})$'
+        m1 = re.match(p1, line.strip(), re.IGNORECASE)
+        if m1:
+            try:
+                date_str, desc, col1, col2, bal_str = m1.groups()
+                date = self.parse_date(date_str)
+                v1, v2 = self.clean_amount(col1), self.clean_amount(col2)
+                balance = self.clean_amount(bal_str)
+                amount = -v1 if v1 > 0 else v2
+                return {'date': date, 'description': desc.strip(), 'amount': amount, 'balance': balance, 'category': None}
+            except Exception:
+                pass
+
+        # Pattern 2: Date Desc Amount Balance
+        p2 = r'^(\d{1,2}[-/.](?:[A-Za-z]{3,9}|\d{1,2})[-/.](?:\d{4}|\d{2}))\s+(.+?)\s+([-\d,]+\.\d{2})\s+([\d,]+\.\d{2})$'
+        m2 = re.match(p2, line.strip(), re.IGNORECASE)
+        if m2:
+            try:
+                date_str, desc, amt_str, bal_str = m2.groups()
+                date = self.parse_date(date_str)
+                amount = self.clean_amount(amt_str)
+                balance = self.clean_amount(bal_str)
+                return {'date': date, 'description': desc.strip(), 'amount': amount, 'balance': balance, 'category': None}
+            except Exception:
+                pass
+
+        return None
+
+    # -------------------------------------------------------------------------
+    # Mathematical Balance Reconciliation
+    # -------------------------------------------------------------------------
+    def _reconcile_running_balances(self):
+        """
+        Reconcile transactions using running balance math:
+        Balance[i] - Balance[i-1] == Amount[i]
+        Corrects signs and detects anomalies.
+        """
+        if not self.transactions or len(self.transactions) < 2:
+            return
+
+        # Sort chronologically by date if needed for running balance calculation
+        # But preserve original parse sequence if dates are equal
+        for i in range(1, len(self.transactions)):
+            prev = self.transactions[i - 1]
+            curr = self.transactions[i]
+
+            prev_bal = prev.get('balance', Decimal('0'))
+            curr_bal = curr.get('balance', Decimal('0'))
+
+            if prev_bal != Decimal('0') and curr_bal != Decimal('0'):
+                expected_delta = curr_bal - prev_bal
+                curr_amt = curr['amount']
+
+                # If magnitude matches but sign was wrong
+                if abs(expected_delta) == abs(curr_amt):
+                    if expected_delta != curr_amt:
+                        curr['amount'] = expected_delta
+                elif abs(expected_delta - curr_amt) > Decimal('0.05'):
+                    self.balance_errors += 1
+                    logger.debug(
+                        f"Balance mismatch: {prev_bal} -> {curr_bal} (delta {expected_delta}) "
+                        f"vs amount {curr_amt}"
+                    )
+
     def _is_header(self, line: str) -> bool:
-        """Check if line is a header or non-transaction metadata."""
-        headers = [
-            'date', 'value date', 'transaction date', 'posting date',
-            'description', 'narration', 'details', 'remarks',
-            'debit', 'credit', 'withdrawal', 'deposit',
-            'balance', 'running balance', 'available balance',
-            'account number', 'statement', 'period', 'opening balance',
-            'closing balance', 'total', 'page', 'continued'
+        """Check if line is a header row."""
+        header_keywords = [
+            'transaction date', 'value date', 'narration', 'particulars',
+            'debit', 'credit', 'balance', 'account number', 'opening balance',
+            'closing balance', 'statement of account', 'statement period', 'page '
         ]
         line_lower = line.lower()
-        
-        # Check for headers
-        if any(header in line_lower for header in headers):
-            # But not if it's an actual transaction description containing these words
-            if not re.search(r'\d{2}[-/]\w{3}[-/]\d{2,4}', line, re.IGNORECASE):
-                return True
-        
-        return False
-    
-    def _parse_pattern_1(self, line: str) -> Optional[Dict[str, Any]]:
-        """
-        Pattern 1: DD-MMM-YY Description Amount Balance
-        Example: 04-AUG-25 AROWOJOLU, OLUWAGBEMIGA 1,000.00 1,035.60
-        Improved to handle various spacing and amount formats.
-        """
-        # More flexible pattern that captures everything between date and final numbers
-        pattern = r'(\d{2}[-/][A-Z]{3}[-/]\d{2,4})\s+(.+?)\s+([-+]?[\d,]+\.\d{2})\s+([-+]?[\d,]+\.\d{2})\s*$'
-        match = re.search(pattern, line, re.IGNORECASE)
-        
-        if match:
-            try:
-                date_str, description, amount_str, balance_str = match.groups()
-                
-                # Clean description (remove extra spaces, dashes)
-                description = re.sub(r'\s+', ' ', description).strip()
-                description = re.sub(r'^[-\s]+|[-\s]+$', '', description)
-                
-                date = self.parse_date(date_str)
-                amount = self._parse_amount(amount_str, description)
-                balance = self.clean_amount(balance_str)
-                
-                # Validate that balance is reasonable
-                if balance < 0:
-                    balance = abs(balance)
-                
-                return {
-                    'date': date,
-                    'description': description,
-                    'amount': amount,
-                    'balance': balance,
-                    'category': None
-                }
-            except Exception as e:
-                # Silent fail for this pattern, try others
-                pass
-        
-        return None
-    
-    def _parse_pattern_2(self, line: str) -> Optional[Dict[str, Any]]:
-        """
-        Pattern 2: DD/MM/YYYY Description Debit Credit Balance
-        Example: 04/08/2025 Transfer 1,000.00 0.00 1,035.60
-        Improved debit/credit detection.
-        """
-        pattern = r'(\d{2}[/-]\d{2}[/-]\d{2,4})\s+(.+?)\s+([\d,]+\.\d{2})\s+([\d,]+\.\d{2})\s+([\d,]+\.\d{2})\s*$'
-        match = re.search(pattern, line)
-        
-        if match:
-            try:
-                date_str, description, col1_str, col2_str, balance_str = match.groups()
-                
-                description = re.sub(r'\s+', ' ', description).strip()
-                date = self.parse_date(date_str)
-                
-                # Parse amounts
-                col1 = self.clean_amount(col1_str)
-                col2 = self.clean_amount(col2_str)
-                balance = self.clean_amount(balance_str)
-                
-                # Determine which is debit/credit
-                # Usually: debit is first, credit is second
-                # One should be 0.00 or close to it
-                if col1 > 0 and col2 == 0:
-                    amount = -col1  # Debit
-                elif col2 > 0 and col1 == 0:
-                    amount = col2   # Credit
-                elif col1 > col2:
-                    # If both have values, larger one is likely the transaction
-                    amount = -col1 if self._is_likely_debit(description) else col1
-                else:
-                    amount = col2 if not self._is_likely_debit(description) else -col2
-                
-                return {
-                    'date': date,
-                    'description': description,
-                    'amount': amount,
-                    'balance': balance,
-                    'category': None
-                }
-            except Exception as e:
-                pass
-        
-        return None
-    
-    def _parse_pattern_3(self, line: str) -> Optional[Dict[str, Any]]:
-        """
-        Pattern 3: Date Description Amount (with +/- sign)
-        Example: 04-AUG-25 Payment -1,000.00 Balance: 1,035.60
-        Improved balance extraction.
-        """
-        pattern = r'(\d{2}[-/][A-Z]{3}[-/]\d{2,4})\s+(.+?)\s+([-+][\d,]+\.\d{2})'
-        match = re.search(pattern, line, re.IGNORECASE)
-        
-        if match:
-            try:
-                date_str, description, amount_str = match.groups()
-                
-                description = re.sub(r'\s+', ' ', description).strip()
-                date = self.parse_date(date_str)
-                amount = self.clean_amount(amount_str)
-                
-                # Try to find balance after the amount
-                remainder = line[match.end():].strip()
-                balance_match = re.search(r'([\d,]+\.\d{2})', remainder)
-                balance = self.clean_amount(balance_match.group(1)) if balance_match else Decimal('0')
-                
-                return {
-                    'date': date,
-                    'description': description,
-                    'amount': amount,
-                    'balance': balance,
-                    'category': None
-                }
-            except Exception as e:
-                pass
-        
-        return None
-    
-    def _parse_pattern_4(self, line: str) -> Optional[Dict[str, Any]]:
-        """
-        Pattern 4: Multiple dates on same line (Value Date and Transaction Date)
-        Example: 04-AUG-25 04-AUG-25 Opening Balance 0.00 35.60
-        Improved to handle various formats.
-        """
-        pattern = r'(\d{2}[-/][A-Z]{3}[-/]\d{2,4})\s+\d{2}[-/][A-Z]{3}[-/]\d{2,4}\s+(.+?)\s+([-]?\s*[\d,]+\.\d{2})\s+([\d,]+\.\d{2})\s*$'
-        match = re.search(pattern, line, re.IGNORECASE)
-        
-        if match:
-            try:
-                date_str, description, amount_str, balance_str = match.groups()
-                
-                description = re.sub(r'\s+', ' ', description).strip()
-                date = self.parse_date(date_str)
-                amount = self._parse_amount(amount_str, description)
-                balance = self.clean_amount(balance_str)
-                
-                return {
-                    'date': date,
-                    'description': description,
-                    'amount': amount,
-                    'balance': balance,
-                    'category': None
-                }
-            except Exception as e:
-                pass
-        
-        return None
-    
-    def _parse_pattern_5(self, line: str) -> Optional[Dict[str, Any]]:
-        """
-        Pattern 5: Simplified pattern for basic statements
-        Example: 04-AUG-25 Description 1000.00
-        For statements without explicit balance columns.
-        """
-        pattern = r'(\d{2}[-/]\w{3}[-/]\d{2,4})\s+(.+?)\s+([\d,]+\.\d{2})\s*$'
-        match = re.search(pattern, line, re.IGNORECASE)
-        
-        if match:
-            try:
-                date_str, description, amount_str = match.groups()
-                
-                description = re.sub(r'\s+', ' ', description).strip()
-                date = self.parse_date(date_str)
-                amount = self._parse_amount(amount_str, description)
-                
-                return {
-                    'date': date,
-                    'description': description,
-                    'amount': amount,
-                    'balance': Decimal('0'),  # No balance info
-                    'category': None
-                }
-            except Exception as e:
-                pass
-        
-        return None
-    
-    def _is_likely_debit(self, description: str) -> bool:
-        """Check if description indicates a debit transaction."""
-        credit_keywords = [
-            'credit', 'deposit', 'salary', 'reversal', 'refund',
-            'interest', 'dividend', 'inflow', 'received'
-        ]
-        debit_keywords = [
-            'withdrawal', 'payment', 'transfer', 'debit', 'charge', 'fee',
-            'purchase', 'atm', 'pos', 'web', 'commission', 'stamp duty',
-            'bill', 'airtime', 'data', 'subscription'
-        ]
-        
-        description_lower = description.lower()
-        if any(keyword in description_lower for keyword in credit_keywords):
+        if any(k in line_lower for k in ['account number', 'statement of account', 'statement period']):
+            return True
+        return sum(k in line_lower for k in header_keywords) >= 2
+
+    def _validate_and_add_transaction(self, txn: Dict[str, Any]) -> bool:
+        trans_key = (
+            txn['date'].isoformat(),
+            txn['description'][:60],
+            str(abs(txn['amount']))
+        )
+        if trans_key in self.seen_transactions:
             return False
-        return any(keyword in description_lower for keyword in debit_keywords)
-    
-    def _parse_amount(self, amount_str: str, description: str) -> Decimal:
-        """
-        Parse amount and determine if it's debit or credit based on context.
-        Improved logic with better keyword detection.
-        """
-        # Clean and convert to Decimal
-        amount = self.clean_amount(amount_str)
-        
-        # If amount string explicitly has minus sign, respect it
-        if '-' in amount_str:
-            return -abs(amount)
-        
-        # Check for credit indicators (incoming money)
-        credit_keywords = [
-            'credit', 'deposit', 'salary', 'reversal', 'refund',
-            'interest', 'dividend', 'inflow', 'received'
-        ]
-        
-        description_lower = description.lower()
-        is_credit = any(keyword in description_lower for keyword in credit_keywords)
-        
-        # If explicitly a credit, ensure positive
-        if is_credit:
-            return abs(amount)
-        
-        # Check for debit indicators (outgoing money)
-        if self._is_likely_debit(description):
-            return -abs(amount)
-        
-        # Default: if no clear indicator, assume positive (credit)
-        return amount
-    
+        self.seen_transactions.add(trans_key)
+        self.transactions.append(txn)
+        return True
+
     def get_parsing_stats(self) -> Dict[str, Any]:
-        """Return parsing statistics for debugging."""
         return {
-            'total_transactions': len(self.transactions),
+            'transactions_found': len(self.transactions),
             'balance_errors': self.balance_errors,
-            'duplicates_prevented': len(self.seen_transactions) - len(self.transactions)
+            'strategy_used': self.strategy_used,
         }

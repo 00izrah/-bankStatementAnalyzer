@@ -30,14 +30,49 @@ class BaseStatementParser(ABC):
         pass
 
     def clean_amount(self, amount_str: str) -> Decimal:
-        """Convert amount string to Decimal."""
-        # Remove currency symbols and commas
-        cleaned = re.sub(r'[₦,]', '', amount_str.strip())
-        return Decimal(cleaned)
+        """Convert amount string to Decimal handling currencies, DR/CR, parentheses, and commas."""
+        if not amount_str:
+            return Decimal('0')
+        cleaned = str(amount_str).strip()
+        if not cleaned or cleaned in ('-', '--', 'N/A', 'nil', 'null'):
+            return Decimal('0')
+
+        # Check for parentheses indicating negative amount: (1,234.50)
+        is_negative = False
+        if cleaned.startswith('(') and cleaned.endswith(')'):
+            is_negative = True
+            cleaned = cleaned[1:-1]
+        elif cleaned.endswith('-') or cleaned.startswith('-'):
+            is_negative = True
+            cleaned = cleaned.replace('-', '')
+        elif 'dr' in cleaned.lower():
+            is_negative = True
+            cleaned = re.sub(r'(?i)dr', '', cleaned)
+        elif 'cr' in cleaned.lower():
+            cleaned = re.sub(r'(?i)cr', '', cleaned)
+
+        # Remove currency symbols (₦, NGN, $, £, €), letters, and spaces
+        cleaned = re.sub(r'[^\d.]', '', cleaned)
+        if not cleaned:
+            return Decimal('0')
+
+        # Handle multiple dots (e.g. 1.200.50 -> 1200.50)
+        if cleaned.count('.') > 1:
+            parts = cleaned.split('.')
+            cleaned = ''.join(parts[:-1]) + '.' + parts[-1]
+
+        val = Decimal(cleaned)
+        return -val if is_negative else val
 
     def parse_date(self, date_str: str) -> datetime:
         """Parse date string to datetime object with optimized format caching."""
-        date_str = date_str.strip().upper()
+        if not date_str:
+            raise ValueError("Empty date string")
+        # Extract the date part if time or extra text is present
+        date_str = str(date_str).strip().upper()
+        # If timestamp is attached, e.g. "04-AUG-2025 14:32:00"
+        date_str = re.split(r'\s{2,}|\s+(?=\d{1,2}:)', date_str)[0].strip()
+
         current_year = datetime.now().year
 
         # 1. Try cached successful format first
@@ -67,6 +102,7 @@ class BaseStatementParser(ABC):
             '%d %b %y',      # 04 AUG 25
             '%d %B %Y',      # 04 AUGUST 2025
             '%d %B %y',      # 04 AUGUST 25
+            '%Y/%m/%d',      # 2025/08/04
         ]
 
         for fmt in formats:
@@ -74,7 +110,6 @@ class BaseStatementParser(ABC):
                 parsed_date = datetime.strptime(date_str, fmt)
                 if parsed_date.year > current_year + 1:
                     parsed_date = parsed_date.replace(year=parsed_date.year - 100)
-                # Cache successful format for fast subsequent parses
                 self._detected_date_format = fmt
                 return parsed_date
             except ValueError:
@@ -84,7 +119,7 @@ class BaseStatementParser(ABC):
         for separator in ['/', '.', ' ']:
             if separator in date_str:
                 normalized = date_str.replace(separator, '-')
-                for fmt in ['%d-%b-%y', '%d-%b-%Y', '%d-%m-%Y', '%d-%m-%y']:
+                for fmt in ['%d-%b-%y', '%d-%b-%Y', '%d-%m-%Y', '%d-%m-%y', '%Y-%m-%d']:
                     try:
                         parsed = datetime.strptime(normalized, fmt)
                         if parsed.year > current_year + 1:

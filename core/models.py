@@ -103,4 +103,16 @@ class Transaction(models.Model):
             self.content_hash = self.generate_content_hash(
                 self.date, self.description, self.amount, self.balance
             )
-        super().save(*args, **kwargs)
+        super().save(*args, **kwargs)
+
+
+@models.signals.post_delete.connect
+def auto_delete_file_on_delete(sender, instance, **kwargs):
+    """Automatically delete physical file from storage when UploadedFile record is deleted."""
+    if sender == UploadedFile and instance.file:
+        import os
+        try:
+            if os.path.isfile(instance.file.path):
+                os.remove(instance.file.path)
+        except Exception:
+            pass

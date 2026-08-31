@@ -10,4 +10,6 @@ urlpatterns = [
     path('transaction/<int:transaction_id>/edit/', views.edit_transaction, name='edit_transaction'),
     path('statement/<int:file_id>/delete/', views.delete_statement, name='delete_statement'),
     path('clear-all/', views.clear_all_data, name='clear_all_data'),
+    path('export/csv/', views.export_transactions_csv, name='export_transactions_csv'),
+    path('export/json/', views.export_transactions_json, name='export_transactions_json'),
 ]

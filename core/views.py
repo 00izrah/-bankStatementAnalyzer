@@ -9,8 +9,11 @@ from .models import UploadedFile, Transaction, Category
 from .forms import UploadStatementForm, CategoryForm, TransactionCategoryForm
 from .services.upload_service import UploadService, UploadError
 from .services.analytics_service import AnalyticsService
+from .services.export_service import ExportService
 from .services.logging_service import AuditLogger, log_exceptions, logger
 from .validators import FileValidationError
+from datetime import timedelta
+from django.utils import timezone
 import os
 
 
@@ -37,8 +40,17 @@ def register(request):
 @log_exceptions('dashboard')
 def dashboard(request):
     date_filter = request.GET.get('date_range', 'all')
+    page = request.GET.get('page', 1)
+    search_query = request.GET.get('q', '').strip()
+    category_filter = request.GET.get('category', '').strip()
+
     analytics = AnalyticsService(request.user)
-    context = analytics.get_dashboard_data(date_filter=date_filter)
+    context = analytics.get_dashboard_data(
+        date_filter=date_filter,
+        page=page,
+        search_query=search_query,
+        category_filter=category_filter,
+    )
     return render(request, 'core/dashboard.html', context)
 
 
@@ -209,4 +221,58 @@ def clear_all_data(request):
     AuditLogger.log_delete(request.user, 'all', total_transactions)
     
     messages.success(request, 'All your data has been cleared successfully!')
-    return redirect('dashboard')
+    return redirect('dashboard')
+
+
+@login_required
+def export_transactions_csv(request):
+    """Export filtered transactions to CSV."""
+    date_filter = request.GET.get('date_range', 'all')
+    category_filter = request.GET.get('category', '').strip()
+    search_query = request.GET.get('q', '').strip()
+
+    queryset = Transaction.objects.filter(uploaded_file__user=request.user)
+
+    days = AnalyticsService.DATE_FILTERS.get(date_filter)
+    if days:
+        start_date = timezone.now().date() - timedelta(days=days)
+        queryset = queryset.filter(date__gte=start_date)
+
+    if search_query:
+        queryset = queryset.filter(
+            Q(description__icontains=search_query) | Q(notes__icontains=search_query)
+        )
+    if category_filter:
+        if category_filter == 'uncategorized':
+            queryset = queryset.filter(category__isnull=True)
+        elif category_filter.isdigit():
+            queryset = queryset.filter(category_id=int(category_filter))
+
+    return ExportService.export_csv(queryset)
+
+
+@login_required
+def export_transactions_json(request):
+    """Export filtered transactions to JSON."""
+    date_filter = request.GET.get('date_range', 'all')
+    category_filter = request.GET.get('category', '').strip()
+    search_query = request.GET.get('q', '').strip()
+
+    queryset = Transaction.objects.filter(uploaded_file__user=request.user)
+
+    days = AnalyticsService.DATE_FILTERS.get(date_filter)
+    if days:
+        start_date = timezone.now().date() - timedelta(days=days)
+        queryset = queryset.filter(date__gte=start_date)
+
+    if search_query:
+        queryset = queryset.filter(
+            Q(description__icontains=search_query) | Q(notes__icontains=search_query)
+        )
+    if category_filter:
+        if category_filter == 'uncategorized':
+            queryset = queryset.filter(category__isnull=True)
+        elif category_filter.isdigit():
+            queryset = queryset.filter(category_id=int(category_filter))
+
+    return ExportService.export_json(queryset)

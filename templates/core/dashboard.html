@@ -7,21 +7,33 @@
 {% block content %}
 <div class="bg-white shadow-lg rounded-lg overflow-hidden mb-6">
     <div class="px-6 py-8">
-        <div class="flex justify-between items-center mb-6">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <h1 class="text-2xl font-bold text-gray-900">Financial Dashboard</h1>
-            <div class="flex space-x-2">
+            <div class="flex flex-wrap items-center gap-2">
                 <form method="get" class="flex items-center space-x-2">
-                    <select name="date_range" class="rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    {% if search_query %}<input type="hidden" name="q" value="{{ search_query }}">{% endif %}
+                    {% if category_filter %}<input type="hidden" name="category" value="{{ category_filter }}">{% endif %}
+                    <select name="date_range" onchange="this.form.submit()" class="rounded-md border-gray-300 shadow-sm text-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
                         <option value="all" {% if date_filter == 'all' %}selected{% endif %}>All Time</option>
                         <option value="month" {% if date_filter == 'month' %}selected{% endif %}>Last 30 Days</option>
                         <option value="3months" {% if date_filter == '3months' %}selected{% endif %}>Last 3 Months</option>
                         <option value="6months" {% if date_filter == '6months' %}selected{% endif %}>Last 6 Months</option>
                         <option value="year" {% if date_filter == 'year' %}selected{% endif %}>Last Year</option>
                     </select>
-                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
-                        Filter
-                    </button>
                 </form>
+                {% if files %}
+                <div class="flex items-center space-x-2">
+                    <a href="{% url 'export_transactions_csv' %}?date_range={{ date_filter }}&q={{ search_query }}&category={{ category_filter }}" class="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" title="Export as CSV">
+                        <svg class="h-4 w-4 mr-1 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        CSV
+                    </a>
+                    <a href="{% url 'export_transactions_json' %}?date_range={{ date_filter }}&q={{ search_query }}&category={{ category_filter }}" class="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" title="Export as JSON">
+                        JSON
+                    </a>
+                </div>
+                {% endif %}
             </div>
         </div>
 
@@ -41,38 +53,103 @@
         {% else %}
 
         <!-- Key Statistics -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div class="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl p-6 text-white">
-                <h3 class="text-lg font-semibold mb-2">Total Spending</h3>
-                <p class="text-3xl font-bold">₦{{ stats.total_spent|floatformat:2|intcomma }}</p>
-                <p class="text-sm opacity-75 mt-2">{{ stats.transaction_count }} transactions</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div class="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl p-5 text-white shadow-md">
+                <h3 class="text-xs uppercase tracking-wider font-semibold opacity-80">Total Spending</h3>
+                <p class="text-2xl font-bold mt-1">₦{{ stats.total_spent|floatformat:2|intcomma }}</p>
+                <p class="text-xs opacity-75 mt-2">Discretionary: ₦{{ stats.real_spending|floatformat:2|intcomma }}</p>
             </div>
-            <div class="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl p-6 text-white">
-                <h3 class="text-lg font-semibold mb-2">Total Income</h3>
-                <p class="text-3xl font-bold">₦{{ stats.total_income|floatformat:2|intcomma }}</p>
-                <p class="text-sm opacity-75 mt-2">Average: ₦{{ stats.avg_transaction|floatformat:2|intcomma }}</p>
+            <div class="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl p-5 text-white shadow-md">
+                <h3 class="text-xs uppercase tracking-wider font-semibold opacity-80">Total Income</h3>
+                <p class="text-2xl font-bold mt-1">₦{{ stats.total_income|floatformat:2|intcomma }}</p>
+                <p class="text-xs opacity-75 mt-2">Net Cash Flow: ₦{{ stats.net_flow|floatformat:2|intcomma }}</p>
             </div>
-            <div class="bg-gradient-to-br from-rose-500 to-rose-600 rounded-xl p-6 text-white">
-                <h3 class="text-lg font-semibold mb-2">Largest Expense</h3>
-                <p class="text-3xl font-bold">₦{% if stats.largest_expense %}{{ stats.largest_expense.amount|abs_value|floatformat:2|intcomma }}{% else %}0.00{% endif %}</p>
-                <p class="text-sm opacity-75 mt-2">Highest income: ₦{% if stats.largest_income %}{{ stats.largest_income.amount|floatformat:2|intcomma }}{% else %}0.00{% endif %}</p>
+            <div class="bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl p-5 text-white shadow-md">
+                <h3 class="text-xs uppercase tracking-wider font-semibold opacity-80">Bank Charges & Levies</h3>
+                <p class="text-2xl font-bold mt-1">₦{{ stats.bank_charges_total|floatformat:2|intcomma }}</p>
+                <p class="text-xs opacity-75 mt-2">EMTL, Stamp Duty, SMS & fees</p>
+            </div>
+            <div class="bg-gradient-to-br from-rose-500 to-rose-600 rounded-xl p-5 text-white shadow-md">
+                <h3 class="text-xs uppercase tracking-wider font-semibold opacity-80">Largest Expense</h3>
+                <p class="text-2xl font-bold mt-1">₦{% if stats.largest_expense %}{{ stats.largest_expense.amount|abs_value|floatformat:2|intcomma }}{% else %}0.00{% endif %}</p>
+                <p class="text-xs opacity-75 mt-2 truncate">{{ stats.largest_expense.description|default:"None"|truncatechars:24 }}</p>
             </div>
         </div>
 
-        <!-- Charts Section -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <!-- Charts & Merchants Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
             <!-- Monthly Trend -->
-            <div class="bg-white rounded-xl shadow-lg p-6">
+            <div class="bg-white rounded-xl shadow-lg p-6 lg:col-span-2">
                 <h3 class="text-lg font-semibold text-gray-900 mb-4">Monthly Income vs Expenses</h3>
-                <canvas id="monthlyTrendChart" class="w-full" height="300"></canvas>
+                <canvas id="monthlyTrendChart" class="w-full" height="260"></canvas>
             </div>
 
             <!-- Category Distribution -->
             <div class="bg-white rounded-xl shadow-lg p-6">
                 <h3 class="text-lg font-semibold text-gray-900 mb-4">Spending by Category</h3>
-                <canvas id="categoryChart" class="w-full" height="300"></canvas>
+                <canvas id="categoryChart" class="w-full" height="260"></canvas>
             </div>
         </div>
+
+        <!-- Financial Intelligence & Insights Panel -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8 border border-gray-100">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center space-x-2">
+                    <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    <h3 class="text-lg font-semibold text-gray-900">Financial Health & Insights</h3>
+                </div>
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold
+                    {% if insights.health_color == 'emerald' %}bg-emerald-100 text-emerald-800
+                    {% elif insights.health_color == 'indigo' %}bg-indigo-100 text-indigo-800
+                    {% elif insights.health_color == 'amber' %}bg-amber-100 text-amber-800
+                    {% else %}bg-rose-100 text-rose-800{% endif %}">
+                    ● {{ insights.health_status }}
+                </span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                    <p class="text-xs text-gray-500 font-medium">Net Savings Rate</p>
+                    <p class="text-xl font-bold text-gray-900 mt-1">{{ insights.savings_rate }}%</p>
+                    <p class="text-xs text-gray-500 mt-1">Income retained after expenses</p>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                    <p class="text-xs text-gray-500 font-medium">Daily Burn Rate</p>
+                    <p class="text-xl font-bold text-gray-900 mt-1">₦{{ insights.daily_burn_rate|floatformat:2|intcomma }}</p>
+                    <p class="text-xs text-gray-500 mt-1">Average daily expenditure</p>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                    <p class="text-xs text-gray-500 font-medium">Fixed & Recurring Bills</p>
+                    <p class="text-xl font-bold text-gray-900 mt-1">₦{{ insights.recurring_total|floatformat:2|intcomma }}</p>
+                    <p class="text-xs text-gray-500 mt-1">Utilities, airtime & subscriptions</p>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                    <p class="text-xs text-gray-500 font-medium">Peak Spending Day</p>
+                    <p class="text-xl font-bold text-gray-900 mt-1">{{ insights.peak_day_name }}</p>
+                    <p class="text-xs text-gray-500 mt-1">₦{{ insights.peak_day_amount|floatformat:2|intcomma }} total spent</p>
+                </div>
+            </div>
+        </div>
+
+        {% if top_merchants %}
+        <!-- Top Merchants / Payees -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Top Merchants & Payees</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                {% for merchant in top_merchants %}
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-100 flex flex-col justify-between">
+                    <div>
+                        <span class="text-xs font-semibold px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded">#{{ forloop.counter }}</span>
+                        <p class="text-sm font-medium text-gray-900 mt-2 truncate" title="{{ merchant.name }}">{{ merchant.name }}</p>
+                    </div>
+                    <p class="text-base font-bold text-gray-800 mt-2">₦{{ merchant.total|floatformat:2|intcomma }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
 
         <!-- Weekly Pattern -->
         <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
@@ -132,8 +209,31 @@
 
         <!-- Recent Transactions -->
         <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h3 class="text-lg font-semibold text-gray-900">Recent Transactions</h3>
+            <div class="px-6 py-4 border-b border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900">Transactions</h3>
+                    <p class="text-xs text-gray-500 mt-0.5">Showing {{ transactions.start_index|default:0 }} to {{ transactions.end_index|default:0 }} of {{ transactions.paginator.count }} transactions</p>
+                </div>
+                <!-- Search & Category Filters -->
+                <form method="get" class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                    {% if date_filter %}<input type="hidden" name="date_range" value="{{ date_filter }}">{% endif %}
+                    <input type="text" name="q" value="{{ search_query }}" placeholder="Search narration..." class="rounded-md border-gray-300 shadow-sm text-xs px-3 py-1.5 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 flex-grow sm:flex-grow-0 sm:w-48">
+                    <select name="category" class="rounded-md border-gray-300 shadow-sm text-xs px-3 py-1.5 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                        <option value="">All Categories</option>
+                        <option value="uncategorized" {% if category_filter == 'uncategorized' %}selected{% endif %}>Uncategorized</option>
+                        {% for cat in user_categories %}
+                        <option value="{{ cat.id }}" {% if category_filter == cat.id|stringformat:"i" %}selected{% endif %}>{{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="px-3 py-1.5 bg-indigo-600 text-white rounded-md text-xs font-medium hover:bg-indigo-700 focus:outline-none">
+                        Filter
+                    </button>
+                    {% if search_query or category_filter %}
+                    <a href="{% url 'dashboard' %}?date_range={{ date_filter }}" class="text-xs text-gray-500 hover:text-gray-700 underline">
+                        Clear
+                    </a>
+                    {% endif %}
+                </form>
             </div>
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
@@ -153,7 +253,17 @@
                                 {{ transaction.date|date:"M d, Y" }}
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-900">
-                                {{ transaction.description }}
+                                <div>
+                                    <span class="font-medium text-gray-900">{{ transaction.description }}</span>
+                                    {% if transaction.notes %}
+                                    <div class="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                                        <svg class="h-3.5 w-3.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                                        </svg>
+                                        <span>{{ transaction.notes }}</span>
+                                    </div>
+                                    {% endif %}
+                                </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium {% if transaction.amount < 0 %}text-red-600{% else %}text-green-600{% endif %}">
                                 ₦{{ transaction.amount|abs_value|floatformat:2|intcomma }}
@@ -172,10 +282,46 @@
                                 <a href="{% url 'edit_transaction' transaction.id %}" class="text-indigo-600 hover:text-indigo-900">Edit</a>
                             </td>
                         </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="px-6 py-8 text-center text-sm text-gray-500">
+                                No transactions match the current filter criteria.
+                            </td>
+                        </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
+
+            <!-- Pagination Footer -->
+            {% if transactions.paginator.num_pages > 1 %}
+            <div class="px-6 py-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
+                <div class="text-xs text-gray-500">
+                    Page <span class="font-medium">{{ transactions.number }}</span> of <span class="font-medium">{{ transactions.paginator.num_pages }}</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    {% if transactions.has_previous %}
+                    <a href="?page={{ transactions.previous_page_number }}&date_range={{ date_filter }}&q={{ search_query }}&category={{ category_filter }}" class="px-3 py-1 bg-white border border-gray-300 rounded text-xs font-medium text-gray-700 hover:bg-gray-50">
+                        Previous
+                    </a>
+                    {% else %}
+                    <span class="px-3 py-1 bg-gray-100 border border-gray-200 rounded text-xs font-medium text-gray-400 cursor-not-allowed">
+                        Previous
+                    </span>
+                    {% endif %}
+
+                    {% if transactions.has_next %}
+                    <a href="?page={{ transactions.next_page_number }}&date_range={{ date_filter }}&q={{ search_query }}&category={{ category_filter }}" class="px-3 py-1 bg-white border border-gray-300 rounded text-xs font-medium text-gray-700 hover:bg-gray-50">
+                        Next
+                    </a>
+                    {% else %}
+                    <span class="px-3 py-1 bg-gray-100 border border-gray-200 rounded text-xs font-medium text-gray-400 cursor-not-allowed">
+                        Next
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
         </div>
         {% endif %}
     </div>
@@ -286,7 +432,8 @@
                     callbacks: {
                         label: function(context) {
                             const value = formatCurrency(context.raw);
-                            const percentage = categoryData[context.dataIndex].percentage.toFixed(1);
+                            const item = categoryData[context.dataIndex] || {};
+                            const percentage = item.percentage !== undefined ? item.percentage.toFixed(1) : '0.0';
                             return `${context.label}: ${value} (${percentage}%)`;
                         }
                     }

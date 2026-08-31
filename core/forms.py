@@ -11,14 +11,14 @@ class UploadStatementForm(forms.ModelForm):
         widgets = {
             'file': forms.FileInput(attrs={
                 'class': 'form-input mt-1 block w-full',
-                'accept': '.pdf',
+                'accept': '.pdf,.xlsx,.xls,.csv',
             }),
         }
         labels = {
-            'file': 'Bank Statement (PDF)',
+            'file': 'Bank Statement (PDF, Excel, or CSV)',
         }
         help_texts = {
-            'file': 'Upload your bank statement PDF (max 10MB). Works with all Nigerian banks.',
+            'file': 'Upload your statement in PDF, Excel (.xlsx, .xls), or CSV format (max 10MB). Works with all Nigerian banks.',
         }
 
     def clean_file(self):

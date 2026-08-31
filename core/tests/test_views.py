@@ -100,3 +100,21 @@ class CoreViewsTest(TestCase):
         # POST should succeed
         post_res = self.client.post(reverse('clear_all_data'))
         self.assertRedirects(post_res, reverse('dashboard'))
+
+    def test_export_csv_view(self):
+        self.client.login(username='viewuser', password='password123')
+        res = self.client.get(reverse('export_transactions_csv'))
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res['Content-Type'], 'text/csv; charset=utf-8')
+
+    def test_export_json_view(self):
+        self.client.login(username='viewuser', password='password123')
+        res = self.client.get(reverse('export_transactions_json'))
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res['Content-Type'], 'application/json')
+
+    def test_password_reset_view_renders(self):
+        res = self.client.get(reverse('password_reset'))
+        self.assertEqual(res.status_code, 200)
+        self.assertTemplateUsed(res, 'registration/password_reset_form.html')
+
