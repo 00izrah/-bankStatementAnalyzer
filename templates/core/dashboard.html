@@ -54,8 +54,8 @@
             </div>
             <div class="bg-gradient-to-br from-rose-500 to-rose-600 rounded-xl p-6 text-white">
                 <h3 class="text-lg font-semibold mb-2">Largest Expense</h3>
-                <p class="text-3xl font-bold">₦{{ stats.largest_expense|floatformat:2|intcomma }}</p>
-                <p class="text-sm opacity-75 mt-2">Highest income: ₦{{ stats.largest_income|floatformat:2|intcomma }}</p>
+                <p class="text-3xl font-bold">₦{% if stats.largest_expense %}{{ stats.largest_expense.amount|abs_value|floatformat:2|intcomma }}{% else %}0.00{% endif %}</p>
+                <p class="text-sm opacity-75 mt-2">Highest income: ₦{% if stats.largest_income %}{{ stats.largest_income.amount|floatformat:2|intcomma }}{% else %}0.00{% endif %}</p>
             </div>
         </div>
 
@@ -186,7 +186,16 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
 
+{{ monthly_totals|json_script:"monthly-data" }}
+{{ categories|json_script:"category-data" }}
+{{ weekly_totals|json_script:"weekly-data" }}
+
 <script>
+    // Parse data safely from json_script tags
+    const monthlyData = JSON.parse(document.getElementById('monthly-data').textContent);
+    const categoryData = JSON.parse(document.getElementById('category-data').textContent);
+    const weeklyData = JSON.parse(document.getElementById('weekly-data').textContent);
+
     // Utility function for formatting currency
     const formatCurrency = (value) => {
         return '₦' + Math.abs(value).toLocaleString('en-NG', {
@@ -196,7 +205,6 @@
     };
 
     // Monthly Trend Chart
-    const monthlyData = {{ monthly_totals|safe }};
     new Chart(document.getElementById('monthlyTrendChart'), {
         type: 'line',
         data: {
@@ -250,7 +258,6 @@
     });
 
     // Category Distribution Chart
-    const categoryData = {{ category_totals|safe }};
     new Chart(document.getElementById('categoryChart'), {
         type: 'doughnut',
         data: {
@@ -289,7 +296,6 @@
     });
 
     // Weekly Pattern Chart
-    const weeklyData = {{ weekly_totals|safe }};
     new Chart(document.getElementById('weeklyChart'), {
         type: 'bar',
         data: {

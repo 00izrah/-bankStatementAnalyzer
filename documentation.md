@@ -1,429 +1,82 @@
-# Bank Statement Analyzer - Product Documentation
-
-## Table of Contents
-1. [Overview](#overview)
-2. [Features](#features)
-3. [System Requirements](#system-requirements)
-4. [Installation](#installation)
-5. [User Guide](#user-guide)
-6. [Technical Architecture](#technical-architecture)
-7. [API Reference](#api-reference)
-8. [Database Schema](#database-schema)
-9. [Supported Banks](#supported-banks)
-10. [Troubleshooting](#troubleshooting)
-11. [Contributing](#contributing)
-12. [License](#license)
-
-## Overview
-
-The Bank Statement Analyzer is a comprehensive web application designed to help users analyze their financial data by uploading bank statements in PDF format. The application automatically parses transactions, categorizes them, and provides detailed insights through interactive visualizations and reports.
-
-### Key Benefits
-- **Automated Transaction Processing**: Upload PDF statements and get instant transaction extraction
-- **Smart Categorization**: Automatic categorization of transactions with customizable categories
-- **Visual Analytics**: Interactive charts and graphs for spending analysis
-- **Multi-Bank Support**: Compatible with major Nigerian banks
-- **Secure Data Handling**: Encrypted storage and secure file processing
-
-## Features
-
-### Core Features
-- **PDF Statement Upload**: Support for multiple bank statement formats
-- **Transaction Extraction**: Automatic parsing of transaction data from PDFs
-- **Smart Categorization**: AI-powered transaction categorization with user customization
-- **Interactive Dashboard**: Real-time financial insights and visualizations
-- **Category Management**: Create and manage custom transaction categories
-- **Transaction Editing**: Manual categorization and note-taking for transactions
-
-### Analytics & Reporting
-- **Monthly Spending Trends**: Track income and expenses over time
-- **Category Distribution**: Visual breakdown of spending by category
-- **Weekly Patterns**: Identify spending patterns throughout the week
-- **Key Metrics**: Total spending, income, averages, and largest transactions
-- **Date Range Filtering**: Analyze data for specific time periods
-
-### User Management
-- **User Authentication**: Secure login and registration system
-- **Password Reset**: Email-based password recovery
-- **User Profiles**: Personal account management
-- **Data Privacy**: User-specific data isolation
-
-## System Requirements
-
-### Server Requirements
-- Python 3.8 or higher
-- Django 5.0+
-- SQLite (default) or PostgreSQL
-
-### Dependencies
-```
-Django==5.0.3
-python-dotenv==1.0.1
-pdfplumber==0.10.4
-pandas==2.2.1
-matplotlib==3.8.3
-pillow==10.2.0
-django-crispy-forms==2.1
-crispy-tailwind==1.0.0
-```
-
-## Installation
-
-### Local Development Setup
-
-1. **Clone the Repository**
-```bash
-git clone <repository-url>
-cd bank-statement-analyzer
-```
-
-2. **Create Virtual Environment**
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-3. **Install Dependencies**
-```bash
-pip install -r requirements.txt
-```
-
-4. **Environment Configuration**
-Create a `.env` file in the project root:
-```env
-DJANGO_SECRET_KEY=your-secret-key-here
-DJANGO_DEBUG=True
-```
-
-5. **Database Setup**
-```bash
-python manage.py makemigrations
-python manage.py migrate
-python manage.py create_default_categories
-```
-
-6. **Create Superuser**
-```bash
-python manage.py createsuperuser
-```
-
-7. **Run Development Server**
-```bash
-python manage.py runserver
-```
-
-### Production Deployment
-
-1. **Environment Variables**
-```env
-DJANGO_SECRET_KEY=production-secret-key
-DJANGO_DEBUG=False
-ALLOWED_HOSTS=yourdomain.com
-DATABASE_URL=postgresql://user:pass@localhost/dbname
-```
-
-2. **Static Files**
-```bash
-python manage.py collectstatic
-```
-
-3. **Database Migration**
-```bash
-python manage.py migrate
-```
-
-## User Guide
-
-### Getting Started
-
-1. **Registration**
-   - Visit the homepage
-   - Click "Sign Up"
-   - Fill in your details
-   - Verify your email (if configured)
-
-2. **First Statement Upload**
-   - Navigate to "Upload Statement"
-   - Select your bank from the dropdown
-   - Choose your PDF statement file
-   - Click "Upload Statement"
-
-3. **Dashboard Overview**
-   - View your financial summary
-   - Explore interactive charts
-   - Review recent transactions
-   - Filter data by date range
-
-### Statement Upload Process
-
-1. **Supported File Types**: PDF files only
-2. **File Size Limit**: Maximum 10MB
-3. **Bank Selection**: Choose your bank from the supported list
-4. **Processing Time**: Usually 10-30 seconds depending on file size
-5. **Error Handling**: Clear error messages for unsupported formats
-
-### Category Management
-
-1. **Default Categories**
-   - Food & Dining
-   - Transportation
-   - Utilities
-   - Entertainment
-   - Shopping
-   - Healthcare
-   - Education
-   - Housing
-   - Income
-   - Other
-
-2. **Custom Categories**
-   - Create personalized categories
-   - Add keywords for automatic categorization
-   - Edit existing categories
-   - Set category descriptions
-
-3. **Transaction Editing**
-   - Manually categorize transactions
-   - Add notes to transactions
-   - Bulk category updates
-
-### Dashboard Features
-
-1. **Key Metrics Cards**
-   - Total spending
-   - Total income
-   - Average transaction amount
-   - Largest expense/income
-
-2. **Interactive Charts**
-   - Monthly income vs expenses trend
-   - Category distribution pie chart
-   - Weekly spending pattern
-   - Hover tooltips with detailed information
-
-3. **Transaction Table**
-   - Recent transactions list
-   - Color-coded amounts
-   - Category badges
-   - Edit functionality
-
-4. **Date Filtering**
-   - Last 30 days
-   - Last 3 months
-   - Last 6 months
-   - Last year
-   - All time
-
-## Technical Architecture
-
-### Backend Architecture
-- **Framework**: Django 5.0
-- **Database**: SQLite (development), PostgreSQL (production)
-- **File Processing**: pdfplumber for PDF parsing
-- **Authentication**: Django's built-in auth system
-- **Forms**: Django Crispy Forms with Tailwind CSS
-
-### Frontend Architecture
-- **CSS Framework**: Tailwind CSS
-- **JavaScript**: Vanilla JS with Chart.js
-- **Charts**: Chart.js for data visualization
-- **Icons**: Lucide React icons
-- **Responsive Design**: Mobile-first approach
-
-### File Structure
-```
-bankstatements/
-├── core/                   # Main application
-│   ├── models.py          # Database models
-│   ├── views.py           # View controllers
-│   ├── forms.py           # Form definitions
-│   ├── urls.py            # URL routing
-│   ├── parsers/           # PDF parsing modules
-│   └── management/        # Django commands
-├── templates/             # HTML templates
-├── static/               # Static files
-├── media/                # Uploaded files
-└── requirements.txt      # Dependencies
-```
-
-### Security Features
-- CSRF protection
-- SQL injection prevention
-- File upload validation
-- User data isolation
-- Secure password hashing
-
-## API Reference
-
-### Models
-
-#### User
-Django's built-in User model for authentication.
-
-#### Category
-```python
-class Category(models.Model):
-    name = models.CharField(max_length=50)
-    description = models.TextField(blank=True)
-    keywords = models.TextField()
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    is_system = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-```
-
-#### UploadedFile
-```python
-class UploadedFile(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    file = models.FileField(upload_to='statements/')
-    uploaded_at = models.DateTimeField(auto_now_add=True)
-    bank_name = models.CharField(max_length=100)
-    processed = models.BooleanField(default=False)
-```
-
-#### Transaction
-```python
-class Transaction(models.Model):
-    uploaded_file = models.ForeignKey(UploadedFile, on_delete=models.CASCADE)
-    date = models.DateField()
-    description = models.TextField()
-    amount = models.DecimalField(max_digits=12, decimal_places=2)
-    category = models.ForeignKey(Category, on_delete=models.SET_NULL)
-    balance = models.DecimalField(max_digits=12, decimal_places=2)
-    notes = models.TextField(blank=True)
-```
-
-### Views
-
-#### Dashboard View
-- **URL**: `/dashboard/`
-- **Method**: GET
-- **Authentication**: Required
-- **Parameters**: `date_range` (optional)
-- **Returns**: Dashboard with analytics and charts
-
-#### Upload View
-- **URL**: `/upload/`
-- **Method**: GET, POST
-- **Authentication**: Required
-- **File Types**: PDF
-- **Max Size**: 10MB
-
-#### Category Management
-- **URL**: `/categories/`
-- **Method**: GET, POST
-- **Authentication**: Required
-- **Actions**: Create, view categories
-
-## Database Schema
-
-### Entity Relationship Diagram
-```
-User (Django Auth)
-├── UploadedFile (1:N)
-│   └── Transaction (1:N)
-│       └── Category (N:1)
-└── Category (1:N)
-```
-
-### Key Relationships
-- Users can have multiple uploaded files
-- Each uploaded file contains multiple transactions
-- Transactions belong to categories
-- Users can create custom categories
-- System categories are shared across users
-
-## Supported Banks
-
-### Currently Supported
-1. **Access Bank**
-   - Statement format: DD-MMM-YY
-   - Columns: Date, Description, Debit, Credit, Balance
-
-2. **Zenith Bank**
-   - Statement format: DD/MM/YYYY
-   - Columns: Date, Description, Debit, Credit, Balance
-
-3. **GTBank (Guaranty Trust Bank)**
-   - Statement format: DD-MMM-YYYY
-   - Columns: Date, Description, Debit, Credit, Balance
-
-4. **UBA (United Bank for Africa)**
-   - Statement format: DD/MM/YYYY
-   - Columns: Date, Description, Debit, Credit, Balance
-
-### Adding New Banks
-To add support for a new bank:
-
-1. Create a new parser in `core/parsers/`
-2. Extend `BaseStatementParser`
-3. Implement `parse_page()` method
-4. Add to `BANK_PARSERS` dictionary
-5. Test with sample statements
-
-## Troubleshooting
-
-### Common Issues
-
-#### PDF Upload Fails
-- **Cause**: Unsupported PDF format or corrupted file
-- **Solution**: Ensure PDF is from supported bank and not password-protected
-
-#### No Transactions Extracted
-- **Cause**: PDF format not recognized by parser
-- **Solution**: Check if bank is supported, verify PDF quality
-
-#### Charts Not Loading
-- **Cause**: JavaScript errors or missing data
-- **Solution**: Check browser console, ensure transactions exist
-
-#### Login Issues
-- **Cause**: Incorrect credentials or session expired
-- **Solution**: Reset password or clear browser cache
-
-### Error Messages
-
-#### "No parser available for [Bank Name]"
-- Bank not supported yet
-- Check supported banks list
-- Contact support for new bank requests
-
-#### "Error processing statement"
-- PDF format issue
-- File corruption
-- Parser error
-
-### Performance Issues
-
-#### Slow Dashboard Loading
-- Large number of transactions
-- Complex date range queries
-- Solution: Use date filtering, pagination
-
-#### File Upload Timeout
-- Large PDF files
-- Slow internet connection
-- Solution: Compress PDF, check connection
-
-## License
-
-This project is licensed under the MIT License. See the LICENSE file for details.
-
-### Third-Party Libraries
-- Django: BSD License
-- Chart.js: MIT License
-- Tailwind CSS: MIT License
-- pdfplumber: MIT License
-
-## Support
-
-### Documentation
-- Product documentation: This file
-- API documentation: Available in code comments
-- User guides: Available in application
-
---
-
-**Last Updated**: January 2025
-**Version**: 1.0.0
-**Maintainer**: Development Team
+# Bank Statement Analyzer: Single Source of Truth
+
+## 1. System Overview
+The **Bank Statement Analyzer** is a financial web application primarily built with Django. Its original purpose is to allow users to authenticate, upload PDF bank statements (specifically focused on Nigerian banks), automatically extract and categorize transactions, and provide a general statistical analysis across all uploaded statements.
+
+The system relies on a monolithic MVC (Model-View-Template) Django architecture for its backend, utilizing SQLite as its default database. Data extraction from PDFs is powered by `pdfplumber`. While the backend handles processing and server-side rendering with Tailwind CSS and Vanilla Chart.js, the repository also contains an unintegrated, scaffolded React + Vite setup (`src/`, `package.json`) which indicates an incomplete migration towards a single-page application (SPA) architecture.
+
+## 2. Architecture & Data Flow
+
+### Directory Structure & Major Decisions
+- `core/`: The main Django application containing models, views, forms, and core business logic.
+  - `core/parsers/`: Contains the parsing logic for extracting text from PDFs. Includes a universal parser and disconnected bank-specific stubs.
+  - `core/services/`: Contains domain services like `UploadService` and `logging_service.py` to decouple business logic from views.
+- `bankstatements/`: The Django project configuration folder (settings, urls, wsgi/asgi).
+- `src/` & `package.json`: The unintegrated React 18 + Vite frontend scaffold.
+- `templates/`: Django HTML templates utilizing Tailwind CSS and Chart.js.
+
+### Data Flow
+1. **Upload & Ingestion**: The user uploads a PDF statement via the UI (HTTP POST to `upload_statement` view).
+2. **Validation & Hashing**: The `UploadService` validates the file. To prevent duplicate uploads, a SHA-256 hash is generated from the uploaded file's binary content.
+3. **Parsing Data**:
+   - The file is routed to `UniversalBankParser` which uses `pdfplumber` to read tabular transaction data.
+   - Heavy regex patterns extract tabular fields: Date, Description, Amount (Credit/Debit), and Balance.
+   - Built-in categorization logic matches keywords in transaction descriptions to pre-defined categories (e.g., "shoprite" -> "Food").
+4. **Data Persistence**:
+   - Parsed transactions generate a unique hash (`date|description|amount|balance`) to prevent partial duplicate entries.
+   - Records are bulk-inserted into the SQLite database in an atomic transaction chunk.
+5. **Aggregation & Visualization**:
+   - The `/dashboard` view queries the database using Django ORM aggregation functions (`TruncMonth`, `Sum`, `Count`).
+   - The aggregated statistics are passed as JSON strings directly into the Django template context where Chart.js renders the data on the client side.
+
+## 3. Core Components & Code Logic
+
+### Models (`core/models.py`)
+- **`UploadedFile`**: Represents the uploaded PDF. Stores file metadata, computed `file_hash` (for deduplication), and transaction counts.
+- **`Transaction`**: Represents individual ledger entries (Date, Amount, Category, Balance, Content Hash). Maintains a unique constraint tying the transaction to its `uploaded_file` and `content_hash`.
+- **`Category`**: Manages system and user-defined transaction categories, storing `keyword_list` to match during parsing.
+
+### Parsers (`core/parsers/`)
+- **`BaseStatementParser`**: An abstract foundation providing shared utilities like `clean_amount`, volatile `parse_date` logic handling various fragmented Nigerian date formats, and `categorize_transaction` dictionary-based matching.
+- **`UniversalBankParser`**: The primary workhorse of the app. It iterates through five distinct regex patterns (`_parse_pattern_1..5`) to identify columnar data and tabular structures.
+- **Bank-Specific Parsers (`gtbank.py`, `uba.py`, etc.)**: These exist but are essentially disconnected stubs; the system defaults to routing all files through the universal parser via `__init__.py`.
+
+### Services (`core/services/`)
+- **`UploadService`**: Manages the upload lifecycle. Ensures ACID compliance using Django atomic transactions, processes duplicate transaction skipping, and handles bulk database writes.
+- **`AuditLogger` (`logging_service.py`)**: A structured JSON logger with a `@log_exceptions` decorator to safely wrap view execution and capture exceptions seamlessly.
+
+### Views (`core/views.py`)
+- **`dashboard(request)`**: Calculates analytics (total spent, sum averages, grouping by week/month/category). Passes `DjangoJSONEncoder` parsed strings to the frontend.
+- **`upload_statement(request)`**: The controller handling form submissions, invoking `UploadService`, and generating success/warning UI feedback.
+
+## 4. Testing & Known Bugs Ledger
+
+### Testing Status
+**CRITICAL**: There are no underlying automated tests (no `tests.py` or `tests/` directory). Validating volatile regex logic across varying PDF layouts currently requires manual execution.
+
+### Known Bugs & Weaknesses
+
+| Bug / Vulnerability | Failure Point | Proposed Fix |
+| :--- | :--- | :--- |
+| **Silent Balance Integrity Failures** | `UniversalBankParser` tracks balance errors (`previous_balance + amount != current_balance`) by incrementing a counter but does not halt ingestion. Corrupt or misparsed data is still saved to the DB. | Implement a hard-fail or quarantine queue for statements with a balance error rate > 0%. Prompt the user for manual review. |
+| **Regex Fragility** | The 5 regex patterns in `UniversalBankParser` can falsely identify line breaks, missing multi-line transaction descriptions typical in Nigerian bank statements. | Transition away from generic regex fallback. Implement header-detection to identify the originating bank and route to the specific parsers (e.g., `gtbank.py`). |
+| **Date Parsing Anomaly (`BaseStatementParser`)** | If a date with a two-digit year is parsed >1 year into the future, the code subtracts 100 years. This logic mutates dates silently and error-prone. | Utilize robust date parsing libraries like `dateutil.parser` with specific `dayfirst=True` configurations, combined with context bounds based on the statement's stated period. |
+| **Disconnected UI Architectures** | The frontend uses Django Templates but includes a scaffolded Vite+React setup (`src/`) which is entirely disconnected, confusing future scaling. | Choose one paradigm: Either purge the `src/` folder to stick with Django templates, or build DRF REST endpoints to fully transition to React. |
+
+## 5. Revival Roadmap
+
+Based on the current state of the codebase, here are the top prioritized steps to modernize and complete the project today:
+
+1. **Establish a Test Suite (Immediate Priority)**
+   * Implement `pytest`.
+   * Gather 3-5 anonymized sample PDF statements from various Nigerian banks (GTBank, UBA, Zenith) and write unit tests for the regex patterns and `clean_amount`/`parse_date` parsers.
+2. **Activate & Refine Bank-Specific Parsers**
+   * Implement logic in `UploadService` to read the first page of the PDF to identify the issuing bank.
+   * Route extraction logic directly to `gtbank.py`, `uba.py`, etc., rather than relying on the brute-force `UniversalBankParser`.
+3. **Resolve Frontend Architecture Dissonance**
+   * Decide on the presentation layer. To honor the React (`src/`) skeleton, install Django REST Framework (DRF) or Django Ninja.
+   * Rewrite the `dashboard` and `upload_statement` views to expose JSON endpoints instead of rendering HTML templates.
+4. **Fix Balance Integrity Engine**
+   * Update the ingestion flow to rollback the atomic database transaction if the parser's checksum (`previous + amount == current`) fails on >2% of the rows, putting the file in a "requires manual mapping" status.
+5. **Upgrade categorization (Optional Modernization)**
+   * Replace the hardcoded keyword dictionary in `BaseStatementParser.categorize_transaction` with a simple LLM call or improved NLP engine to accurately map vague transaction descriptions to explicit categories.

@@ -2,11 +2,14 @@
 Universal parser for Nigerian bank statements.
 This parser attempts to extract transactions from any bank statement format.
 """
+import logging
 from .base import BaseStatementParser
 import re
 from datetime import datetime
 from decimal import Decimal
 from typing import List, Dict, Any, Optional
+
+logger = logging.getLogger('bankstatements')
 
 class UniversalBankParser(BaseStatementParser):
     """
@@ -102,7 +105,10 @@ class UniversalBankParser(BaseStatementParser):
                 if abs(expected_balance - actual_balance) > Decimal('0.01'):
                     self.balance_errors += 1
                     # Still add transaction, but note the inconsistency
-                    print(f"⚠️  Balance mismatch: Expected {expected_balance}, Got {actual_balance}")
+                    logger.warning(
+                        f"Balance mismatch: Expected {expected_balance}, Got {actual_balance} "
+                        f"for transaction: {transaction.get('description', '')[:40]}"
+                    )
             
             self.previous_balance = transaction['balance']
         
@@ -353,13 +359,19 @@ class UniversalBankParser(BaseStatementParser):
     
     def _is_likely_debit(self, description: str) -> bool:
         """Check if description indicates a debit transaction."""
+        credit_keywords = [
+            'credit', 'deposit', 'salary', 'reversal', 'refund',
+            'interest', 'dividend', 'inflow', 'received'
+        ]
         debit_keywords = [
             'withdrawal', 'payment', 'transfer', 'debit', 'charge', 'fee',
             'purchase', 'atm', 'pos', 'web', 'commission', 'stamp duty',
-            'purchase', 'bill', 'airtime', 'data', 'subscription'
+            'bill', 'airtime', 'data', 'subscription'
         ]
         
         description_lower = description.lower()
+        if any(keyword in description_lower for keyword in credit_keywords):
+            return False
         return any(keyword in description_lower for keyword in debit_keywords)
     
     def _parse_amount(self, amount_str: str, description: str) -> Decimal:
