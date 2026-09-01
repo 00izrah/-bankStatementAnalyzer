@@ -1,7 +1,7 @@
 from decimal import Decimal
 from datetime import timedelta
 from typing import Dict, Any, Optional, List
-from django.db.models import Sum, Q, Avg, Count
+from django.db.models import Sum, Q, Avg, Count, Min, Max
 from django.db.models.functions import TruncMonth, TruncWeek
 from django.core.paginator import Paginator
 from django.utils import timezone
@@ -172,7 +172,16 @@ class AnalyticsService:
             health_color = 'rose'
 
         # Daily Burn Rate
-        days = self.DATE_FILTERS.get(date_filter, 30)
+        days = self.DATE_FILTERS.get(date_filter)
+        if not days:
+            date_bounds = queryset.aggregate(min_date=Min('date'), max_date=Max('date'))
+            min_date = date_bounds['min_date']
+            max_date = date_bounds['max_date']
+            if min_date and max_date:
+                days = max(1, (max_date - min_date).days + 1)
+            else:
+                days = 30
+
         daily_burn_rate = round(float(spent / Decimal(str(days))), 2) if days > 0 else 0.0
 
         # Recurring charges detection (Bills, utilities, subscriptions, recurring fees)

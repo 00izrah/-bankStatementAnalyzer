@@ -4,9 +4,15 @@ Provides tokenized narration cleaning, merchant extraction, direction-aware cate
 and regex word-boundary keyword matching.
 """
 import re
+import json
+import logging
 from decimal import Decimal
-from typing import Optional, Dict, Any, Tuple
+from typing import Optional, Dict, Any, Tuple, List
+from django.db import transaction
+from django.db.models import Q
 from ..models import Category
+
+logger = logging.getLogger('bankstatements')
 
 
 class CategorizationService:
@@ -237,3 +243,271 @@ class CategorizationService:
                     return cat
 
         return None
+
+    @classmethod
+    def categorize_with_llm_batch(
+        cls,
+        transactions_data: List[Dict[str, Any]],
+        available_categories: List[Category],
+        max_retries: int = 3
+    ) -> List[Dict[str, Any]]:
+        """
+        Use Groq fast LLM to categorize a batch of ambiguous or uncategorized transactions.
+
+        Args:
+            transactions_data: List of dicts with 'id', 'description', 'amount'.
+            available_categories: List of Category model objects available to the user.
+            max_retries: Number of retries on rate limits.
+
+        Returns:
+            List of dicts: [{'id': ..., 'category_name': ..., 'clean_merchant': ..., 'confidence': ...}]
+        """
+        if not transactions_data or not available_categories:
+            return []
+
+        import time
+        from django.conf import settings
+        if not getattr(settings, 'GROQ_API_KEY', None):
+            logger.info("GROQ_API_KEY not configured, skipping AI categorization fallback")
+            return []
+
+        try:
+            from groq import Groq
+            client = Groq(api_key=settings.GROQ_API_KEY)
+        except Exception as e:
+            logger.warning(f"Could not initialize Groq client: {e}")
+            return []
+
+        category_names = [cat.name for cat in available_categories]
+        model_name = getattr(settings, 'COPILOT_FAST_MODEL', 'openai/gpt-oss-20b')
+
+        # Process in chunks of 20 to strictly adhere to token rate limits
+        chunk_size = 20
+        all_results = []
+
+        for i in range(0, len(transactions_data), chunk_size):
+            chunk = transactions_data[i:i + chunk_size]
+
+            # Format transactions concisely for LLM prompt
+            txn_list_text = []
+            for t in chunk:
+                t_id = t.get('id', '')
+                desc = (t.get('description', '') or '')[:80]
+                try:
+                    amt_val = float(t.get('amount', 0))
+                except Exception:
+                    amt_val = 0.0
+                direction = "Inflow" if amt_val > 0 else "Expense"
+                txn_list_text.append(
+                    f"ID {t_id}: ₦{abs(amt_val):,.2f} ({direction}) | Narration: \"{desc}\""
+                )
+
+            prompt = f"""You are an expert in Nigerian bank statement transactions.
+Categorize each of the following bank transactions into EXACTLY ONE of the permitted categories.
+
+Permitted Categories:
+{json.dumps(category_names, indent=2)}
+
+Transactions:
+{chr(10).join(txn_list_text)}
+
+Respond ONLY with a JSON object:
+{{
+  "results": [
+    {{
+      "id": <transaction_id_or_number>,
+      "category_name": "<exact_matching_category_name_from_permitted_list>",
+      "clean_merchant": "<clean_merchant_or_payee_name_or_null>",
+      "confidence": "high" or "medium" or "low"
+    }}
+  ]
+}}
+"""
+            chunk_results = []
+            for attempt in range(max_retries):
+                try:
+                    response = client.chat.completions.create(
+                        model=model_name,
+                        messages=[
+                            {
+                                "role": "system",
+                                "content": "You are a Nigerian banking transaction categorization engine. Output ONLY valid JSON adhering strictly to the schema."
+                            },
+                            {"role": "user", "content": prompt}
+                        ],
+                        temperature=0.1,
+                        max_tokens=1500,
+                    )
+                    raw_content = response.choices[0].message.content.strip()
+                    parsed = cls._parse_json_from_llm(raw_content)
+                    if parsed:
+                        chunk_results = parsed
+                        break
+
+                except Exception as e:
+                    err_str = str(e).lower()
+                    if '429' in err_str or 'rate_limit' in err_str or '413' in err_str:
+                        wait_time = (attempt + 1) * 2
+                        logger.warning(f"Groq rate limit hit during categorization, backing off {wait_time}s...")
+                        time.sleep(wait_time)
+                    else:
+                        logger.error(f"AI batch categorization chunk error: {e}")
+                        break
+
+            all_results.extend(chunk_results)
+
+        return all_results
+
+    @staticmethod
+    def _parse_json_from_llm(raw: str) -> List[Dict[str, Any]]:
+        """Extract and parse JSON array or object structure from LLM output."""
+        if not raw:
+            return []
+        if '</think>' in raw:
+            raw = raw.split('</think>')[-1].strip()
+
+        # Clean markdown fences
+        raw = re.sub(r'^```[a-zA-Z]*', '', raw, flags=re.MULTILINE)
+        raw = re.sub(r'```$', '', raw, flags=re.MULTILINE).strip()
+
+        # 1. Direct json.loads
+        try:
+            data = json.loads(raw)
+            if isinstance(data, list):
+                return data
+            if isinstance(data, dict):
+                for v in data.values():
+                    if isinstance(v, list):
+                        return v
+        except Exception:
+            pass
+
+        # 2. Extract [ ... ] block
+        array_match = re.search(r'\[\s*\{[\s\S]*\}\s*\]', raw)
+        if array_match:
+            try:
+                parsed = json.loads(array_match.group(0))
+                if isinstance(parsed, list):
+                    return parsed
+            except Exception:
+                pass
+
+        # 3. Extract { "results": [ ... ] } block
+        dict_match = re.search(r'\{\s*"[a-zA-Z0-9_-]+"\s*:\s*\[[\s\S]*?\]\s*\}', raw)
+        if dict_match:
+            try:
+                parsed = json.loads(dict_match.group(0))
+                for v in parsed.values():
+                    if isinstance(v, list):
+                        return v
+            except Exception:
+                pass
+
+        # 4. Extract individual JSON objects { "id": ... }
+        items = []
+        for obj_match in re.finditer(r'\{[^{}]*"id"[^{}]*\}', raw):
+            try:
+                item = json.loads(obj_match.group(0))
+                if isinstance(item, dict) and 'id' in item:
+                    items.append(item)
+            except Exception:
+                continue
+        return items
+
+    @classmethod
+    def bulk_ai_categorize_user_transactions(
+        cls,
+        user,
+        only_uncategorized: bool = True,
+        max_transactions: int = 150,
+        batch_size: int = 25
+    ) -> Dict[str, Any]:
+        """
+        Runs AI categorization on transactions for a specific user and saves updates to the database.
+        """
+        import time
+        from ..models import Transaction
+
+        # Fetch user's categories
+        user_cats = Category.objects.filter(
+            Q(user=user) | Q(is_system=True)
+        ).distinct()
+        cat_map = {c.name.lower(): c for c in user_cats}
+
+        qs = Transaction.objects.filter(uploaded_file__user=user)
+        if only_uncategorized:
+            qs = qs.filter(
+                Q(category__isnull=True) |
+                Q(category__name__in=['Other', 'Uncategorized'])
+            )
+
+        transactions_to_process = list(qs[:max_transactions])
+        if not transactions_to_process:
+            return {
+                "processed": 0,
+                "updated": 0,
+                "message": "No uncategorized transactions found.",
+                "results": []
+            }
+
+        updated_count = 0
+        all_results = []
+
+        # Process in batches with pacing
+        for i in range(0, len(transactions_to_process), batch_size):
+            batch = transactions_to_process[i:i + batch_size]
+            batch_payload = [
+                {"id": t.id, "description": t.description, "amount": str(t.amount)}
+                for t in batch
+            ]
+
+            ai_results = cls.categorize_with_llm_batch(batch_payload, list(user_cats))
+
+            # Map results by ID
+            res_by_id = {}
+            for r in ai_results:
+                if isinstance(r, dict) and 'id' in r:
+                    res_by_id[str(r['id'])] = r
+                    res_by_id[r['id']] = r
+
+            with transaction.atomic():
+                for t in batch:
+                    ai_item = res_by_id.get(t.id) or res_by_id.get(str(t.id))
+                    if not ai_item:
+                        continue
+
+                    cat_name = ai_item.get('category_name', '')
+                    matched_cat = cls._find_category_by_name(cat_name, cat_map)
+                    merchant = ai_item.get('clean_merchant')
+
+                    changed = False
+                    if matched_cat and t.category != matched_cat:
+                        t.category = matched_cat
+                        changed = True
+
+                    if merchant and (not t.notes or 'Merchant:' not in t.notes):
+                        t.notes = f"Merchant: {merchant}"
+                        changed = True
+
+                    if changed:
+                        t.save(update_fields=['category', 'notes', 'updated_at'])
+                        updated_count += 1
+                        all_results.append({
+                            "id": t.id,
+                            "date": str(t.date),
+                            "description": t.description[:60],
+                            "amount": str(t.amount),
+                            "category": matched_cat.name if matched_cat else 'Other',
+                            "merchant": merchant or ""
+                        })
+
+            # Small delay between batches to respect rate limits
+            if i + batch_size < len(transactions_to_process):
+                time.sleep(1.0)
+
+        return {
+            "processed": len(transactions_to_process),
+            "updated": updated_count,
+            "results": all_results,
+            "message": f"Successfully AI-categorized {updated_count} transactions."
+        }

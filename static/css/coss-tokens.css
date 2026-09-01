@@ -1,0 +1,698 @@
+/**
+ * coss UI Design Tokens, Font Contracts & Component Primitives
+ * Bank Statement Analyzer Design System
+ */
+
+:root {
+  /* Font Contracts */
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-heading: var(--font-sans);
+
+  /* Semantic Color Variables (Light Mode) */
+  --background: 0 0% 100%;                  /* #ffffff */
+  --foreground: 224 71.4% 4.1%;             /* #020817 */
+  
+  --card: 0 0% 100%;                        /* #ffffff */
+  --card-foreground: 224 71.4% 4.1%;        /* #020817 */
+  
+  --popover: 0 0% 100%;                     /* #ffffff */
+  --popover-foreground: 224 71.4% 4.1%;     /* #020817 */
+  
+  --primary: 239 84% 67%;                   /* #6366f1 (Indigo 500) */
+  --primary-foreground: 0 0% 100%;          /* #ffffff */
+  
+  --secondary: 220 14.3% 95.9%;             /* #f1f5f9 */
+  --secondary-foreground: 220.9 39.3% 11%;  /* #0f172a */
+  
+  --muted: 220 14.3% 95.9%;                 /* #f1f5f9 */
+  --muted-foreground: 220 8.9% 46.1%;       /* #64748b */
+  
+  --accent: 220 14.3% 95.9%;                /* #f1f5f9 */
+  --accent-foreground: 220.9 39.3% 11%;     /* #0f172a */
+  
+  --destructive: 0 84.2% 60.2%;             /* #ef4444 */
+  --destructive-foreground: 0 0% 100%;      /* #ffffff */
+  
+  --border: 220 13% 91%;                    /* #e2e8f0 */
+  --input: 220 13% 91%;                     /* #e2e8f0 */
+  --ring: 239 84% 67%;                      /* #6366f1 */
+  
+  /* Semantic Status Indicators */
+  --success: 142.1 76.2% 36.3%;             /* #16a34a */
+  --success-foreground: 0 0% 100%;          /* #ffffff */
+  
+  --warning: 38 92% 50%;                    /* #f59e0b */
+  --warning-foreground: 0 0% 100%;          /* #ffffff */
+  
+  --info: 199 89% 48%;                      /* #0ea5e9 */
+  --info-foreground: 0 0% 100%;             /* #ffffff */
+
+  /* Chart & Analytics Tokens */
+  --chart-1: 239 84% 67%;                   /* Indigo */
+  --chart-2: 160 60% 45%;                   /* Emerald */
+  --chart-3: 30 80% 55%;                    /* Amber */
+  --chart-4: 280 65% 60%;                   /* Violet */
+  --chart-5: 340 75% 55%;                   /* Rose */
+
+  /* Border Radius Tokens */
+  --radius: 0.625rem;                       /* 10px baseline */
+  --radius-sm: calc(var(--radius) - 4px);   /* 6px */
+  --radius-md: calc(var(--radius) - 2px);   /* 8px */
+  --radius-lg: var(--radius);               /* 10px */
+  --radius-xl: calc(var(--radius) + 6px);   /* 16px */
+  --radius-2xl: calc(var(--radius) + 12px); /* 22px */
+  --frame-radius: 0.75rem;                  /* 12px frame container */
+}
+
+.dark {
+  /* Semantic Color Variables (Dark Mode) */
+  --background: 224 71.4% 4.1%;             /* #020817 */
+  --foreground: 210 20% 98%;                /* #f8fafc */
+  
+  --card: 224 71.4% 4.1%;                   /* #020817 */
+  --card-foreground: 210 20% 98%;           /* #f8fafc */
+  
+  --popover: 224 71.4% 4.1%;                /* #020817 */
+  --popover-foreground: 210 20% 98%;        /* #f8fafc */
+  
+  --primary: 239 84% 67%;                   /* #6366f1 */
+  --primary-foreground: 0 0% 100%;          /* #ffffff */
+  
+  --secondary: 215 27.9% 16.9%;             /* #1e293b */
+  --secondary-foreground: 210 20% 98%;      /* #f8fafc */
+  
+  --muted: 215 27.9% 16.9%;                 /* #1e293b */
+  --muted-foreground: 217.9 10.6% 64.9%;    /* #94a3b8 */
+  
+  --accent: 215 27.9% 16.9%;                /* #1e293b */
+  --accent-foreground: 210 20% 98%;         /* #f8fafc */
+  
+  --destructive: 0 62.8% 30.6%;             /* #7f1d1d */
+  --destructive-foreground: 210 20% 98%;    /* #f8fafc */
+  
+  --border: 215 27.9% 16.9%;                /* #1e293b */
+  --input: 215 27.9% 16.9%;                 /* #1e293b */
+  --ring: 239 84% 67%;                      /* #6366f1 */
+  
+  --success: 142.1 70.6% 45.3%;
+  --success-foreground: 144.9 80.4% 10%;
+  
+  --warning: 48 96% 53%;
+  --warning-foreground: 26 83.3% 14.1%;
+  
+  --info: 199 89% 48%;
+  --info-foreground: 0 0% 100%;
+
+  --chart-1: 220 70% 50%;
+  --chart-2: 160 60% 45%;
+  --chart-3: 30 80% 55%;
+  --chart-4: 280 65% 60%;
+  --chart-5: 340 75% 55%;
+}
+
+/* ==========================================================================
+   GLOBAL RESET & TYPOGRAPHY
+   ========================================================================== */
+body {
+  font-family: var(--font-sans);
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  position: relative; /* Safari portaled backdrop compatibility */
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code, kbd, samp, pre {
+  font-family: var(--font-mono);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+}
+
+/* ==========================================================================
+   coss UI PRIMITIVES
+   ========================================================================== */
+
+/* 1. Frame Primitive */
+.coss-frame,
+.reui-frame {
+  border-radius: var(--frame-radius);
+  border: 1px solid hsl(var(--border));
+  background-color: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.coss-frame-header,
+.reui-frame-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid hsl(var(--border));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.coss-frame-title,
+.reui-frame-title {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  letter-spacing: -0.01em;
+}
+
+.coss-frame-desc,
+.reui-frame-desc {
+  font-size: 0.8125rem;
+  color: hsl(var(--muted-foreground));
+  margin-top: 0.125rem;
+}
+
+.coss-frame-panel,
+.reui-frame-panel {
+  padding: 1.5rem;
+}
+
+.coss-frame-footer,
+.reui-frame-footer {
+  padding: 0.875rem 1.5rem;
+  background-color: hsl(var(--muted) / 0.5);
+  border-top: 1px solid hsl(var(--border));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* 2. Card Primitive */
+.coss-card {
+  border-radius: var(--radius-lg);
+  border: 1px solid hsl(var(--border));
+  background-color: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+.coss-card-header {
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.coss-card-title {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.coss-card-desc {
+  font-size: 0.8125rem;
+  color: hsl(var(--muted-foreground));
+}
+.coss-card-content {
+  padding: 0 1.5rem 1.5rem 1.5rem;
+}
+.coss-card-footer {
+  padding: 0 1.5rem 1.5rem 1.5rem;
+  display: flex;
+  align-items: center;
+}
+
+/* 3. Table / Data Grid Primitive */
+.coss-table,
+.coss-data-grid,
+.reui-data-grid {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.875rem;
+}
+
+.coss-table th,
+.coss-data-grid th,
+.reui-data-grid th {
+  background-color: hsl(var(--muted) / 0.7);
+  color: hsl(var(--muted-foreground));
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid hsl(var(--border));
+  text-align: left;
+  user-select: none;
+}
+
+.coss-table td,
+.coss-data-grid td,
+.reui-data-grid td {
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid hsl(var(--border) / 0.6);
+  color: hsl(var(--foreground));
+  vertical-align: middle;
+}
+
+.coss-table tr:last-child td,
+.coss-data-grid tr:last-child td,
+.reui-data-grid tr:last-child td {
+  border-bottom: none;
+}
+
+.coss-table tr:hover td,
+.coss-data-grid tr:hover td,
+.reui-data-grid tr:hover td {
+  background-color: hsl(var(--muted) / 0.4);
+}
+
+/* 4. Button Primitive */
+.coss-button,
+.coss-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  padding: 0.5rem 0.875rem;
+  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  border: 1px solid transparent;
+  user-select: none;
+  text-decoration: none;
+}
+.coss-button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--ring));
+}
+.coss-button:disabled {
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+/* Button Variants */
+.coss-button-primary {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+.coss-button-primary:hover {
+  filter: brightness(0.92);
+}
+.coss-button-secondary {
+  background-color: hsl(var(--secondary));
+  color: hsl(var(--secondary-foreground));
+  border-color: hsl(var(--border));
+}
+.coss-button-secondary:hover {
+  background-color: hsl(var(--muted));
+}
+.coss-button-outline {
+  background-color: transparent;
+  color: hsl(var(--foreground));
+  border-color: hsl(var(--border));
+}
+.coss-button-outline:hover {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+.coss-button-ghost {
+  background-color: transparent;
+  color: hsl(var(--foreground));
+}
+.coss-button-ghost:hover {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+.coss-button-destructive {
+  background-color: hsl(var(--destructive));
+  color: hsl(var(--destructive-foreground));
+}
+.coss-button-destructive:hover {
+  filter: brightness(0.9);
+}
+
+/* Button Sizes */
+.coss-button-sm {
+  padding: 0.375rem 0.625rem;
+  font-size: 0.6875rem;
+  border-radius: var(--radius-sm);
+}
+.coss-button-lg {
+  padding: 0.625rem 1.125rem;
+  font-size: 0.8125rem;
+  border-radius: var(--radius-lg);
+}
+.coss-button-icon {
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border-radius: var(--radius-md);
+}
+
+/* 5. Badge Primitive */
+.coss-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.coss-badge-primary {
+  background-color: hsl(var(--primary) / 0.12);
+  color: hsl(var(--primary));
+  border-color: hsl(var(--primary) / 0.24);
+}
+.coss-badge-secondary {
+  background-color: hsl(var(--secondary));
+  color: hsl(var(--secondary-foreground));
+  border-color: hsl(var(--border));
+}
+.coss-badge-outline {
+  background-color: transparent;
+  color: hsl(var(--foreground));
+  border-color: hsl(var(--border));
+}
+.coss-badge-success {
+  background-color: hsl(var(--success) / 0.12);
+  color: hsl(var(--success));
+  border-color: hsl(var(--success) / 0.25);
+}
+.coss-badge-warning {
+  background-color: hsl(var(--warning) / 0.12);
+  color: hsl(var(--warning));
+  border-color: hsl(var(--warning) / 0.25);
+}
+.coss-badge-destructive {
+  background-color: hsl(var(--destructive) / 0.12);
+  color: hsl(var(--destructive));
+  border-color: hsl(var(--destructive) / 0.25);
+}
+.coss-badge-info {
+  background-color: hsl(var(--info) / 0.12);
+  color: hsl(var(--info));
+  border-color: hsl(var(--info) / 0.25);
+}
+
+/* 6. Form & Field Controls */
+.coss-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+.coss-field-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+}
+.coss-field-desc {
+  font-size: 0.6875rem;
+  color: hsl(var(--muted-foreground));
+}
+.coss-field-error {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: hsl(var(--destructive));
+}
+
+.coss-input,
+.coss-textarea,
+.coss-select {
+  width: 100%;
+  font-size: 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid hsl(var(--input));
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  padding: 0.5rem 0.75rem;
+  transition: all 150ms ease;
+}
+.coss-input:focus,
+.coss-textarea:focus,
+.coss-select:focus {
+  outline: none;
+  border-color: hsl(var(--ring));
+  box-shadow: 0 0 0 1px hsl(var(--ring));
+}
+.coss-input::placeholder,
+.coss-textarea::placeholder {
+  color: hsl(var(--muted-foreground) / 0.7);
+}
+
+/* Input Group */
+.coss-input-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+.coss-input-group .coss-input {
+  padding-left: 2.25rem;
+}
+.coss-input-group-addon {
+  position: absolute;
+  left: 0.75rem;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  color: hsl(var(--muted-foreground));
+}
+
+/* 7. Kbd Keyboard Shortcut */
+.coss-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  padding: 0.125rem 0.375rem;
+  border-radius: calc(var(--radius-sm) - 2px);
+  background-color: hsl(var(--muted));
+  border: 1px solid hsl(var(--border));
+  color: hsl(var(--muted-foreground));
+}
+
+/* 8. Alert Primitive */
+.coss-alert {
+  position: relative;
+  width: 100%;
+  border-radius: var(--radius-lg);
+  border: 1px solid hsl(var(--border));
+  padding: 0.875rem 1rem;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+.coss-alert-success {
+  background-color: hsl(var(--success) / 0.08);
+  border-color: hsl(var(--success) / 0.25);
+  color: hsl(var(--success));
+}
+.coss-alert-warning {
+  background-color: hsl(var(--warning) / 0.08);
+  border-color: hsl(var(--warning) / 0.25);
+  color: hsl(var(--warning));
+}
+.coss-alert-destructive {
+  background-color: hsl(var(--destructive) / 0.08);
+  border-color: hsl(var(--destructive) / 0.25);
+  color: hsl(var(--destructive));
+}
+.coss-alert-info {
+  background-color: hsl(var(--info) / 0.08);
+  border-color: hsl(var(--info) / 0.25);
+  color: hsl(var(--info));
+}
+
+/* 9. Segmented Control / Tabs Primitive */
+.coss-tabs-list,
+.coss-segmented-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border-radius: var(--radius-lg);
+  background-color: hsl(var(--muted));
+  border: 1px solid hsl(var(--border));
+}
+
+.coss-tab-trigger,
+.coss-segmented-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.3125rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  color: hsl(var(--muted-foreground));
+  transition: all 150ms ease;
+  cursor: pointer;
+  user-select: none;
+  border: none;
+  background: transparent;
+}
+.coss-tab-trigger:hover,
+.coss-segmented-item:hover {
+  color: hsl(var(--foreground));
+}
+.coss-tab-trigger.active,
+.coss-tab-trigger[data-state="active"],
+.coss-segmented-item.active {
+  background-color: hsl(var(--card));
+  color: hsl(var(--foreground));
+  font-weight: 600;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+/* 10. Icon Tile / Avatar */
+.coss-icon-tile,
+.reui-icon-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  flex-shrink: 0;
+}
+
+/* 11. Empty State Primitive */
+.coss-empty {
+  text-align: center;
+  padding: 3.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.coss-empty-icon {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: var(--radius-xl);
+  background-color: hsl(var(--primary) / 0.1);
+  border: 1px solid hsl(var(--primary) / 0.2);
+  color: hsl(var(--primary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+.coss-empty-title {
+  font-family: var(--font-heading);
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+}
+.coss-empty-desc {
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  margin-top: 0.375rem;
+  max-width: 28rem;
+  line-height: 1.5;
+}
+
+/* 12. Sheet / Drawer & Dialog Overlays */
+.coss-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(2, 8, 23, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 40;
+  transition: opacity 200ms ease;
+}
+.coss-backdrop.hidden {
+  display: none;
+}
+
+.coss-sheet-popup {
+  position: fixed;
+  inset-block: 0;
+  right: 0;
+  z-index: 50;
+  width: 100%;
+  max-width: 440px;
+  background-color: hsl(var(--card));
+  border-left: 1px solid hsl(var(--border));
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  transform: translateX(100%);
+  transition: transform 250ms cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+}
+.coss-sheet-popup.open {
+  transform: translateX(0);
+}
+
+.coss-dialog-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.95);
+  z-index: 50;
+  width: 100%;
+  max-width: 32rem;
+  background-color: hsl(var(--card));
+  border-radius: var(--radius-xl);
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.coss-dialog-popup.open {
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* 13. Toast Notification Container */
+#coss-toast-container {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  pointer-events: none;
+  max-width: 24rem;
+  width: 100%;
+}
+.coss-toast {
+  pointer-events: auto;
+  border-radius: var(--radius-lg);
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  padding: 0.875rem 1rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  animation: coss-toast-enter 200ms ease-out forwards;
+}
+@keyframes coss-toast-enter {
+  from { opacity: 0; transform: translateY(0.75rem) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* 14. Hugeicons Utility Layer */
+.hgi-stroke {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: -0.125em;
+  font-style: normal;
+  line-height: 1;
+  speak: none;
+}
+

@@ -4,94 +4,176 @@
 {% block title %}Upload Statement - Bank Statement Analyzer{% endblock %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto">
-    <div class="bg-white shadow-lg rounded-lg overflow-hidden">
-        <div class="px-6 py-8">
-            <div class="text-center mb-8">
-                <h2 class="text-3xl font-bold text-gray-900">Upload Bank Statement</h2>
-                <p class="mt-2 text-gray-600">Upload your bank statement in PDF, Excel (.xlsx), or CSV from any Nigerian bank</p>
+<div class="max-w-4xl mx-auto space-y-6">
+    <!-- coss UI Stepper Component -->
+    <div class="coss-card p-5 shadow-coss-xs" data-slot="card">
+        <div class="flex items-center justify-between max-w-2xl mx-auto">
+            <!-- Step 1: Active -->
+            <div class="flex items-center gap-3">
+                <div class="size-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-xs shadow-coss-xs">
+                    1
+                </div>
+                <div>
+                    <p class="text-xs font-bold text-foreground leading-none">Select File</p>
+                    <p class="text-[10px] text-muted-foreground mt-0.5">PDF, Excel, or CSV</p>
+                </div>
             </div>
 
-            <form method="post" enctype="multipart/form-data" class="space-y-6">
+            <!-- Divider -->
+            <div class="flex-1 h-0.5 bg-border mx-4"></div>
+
+            <!-- Step 2: Processing -->
+            <div class="flex items-center gap-3">
+                <div class="size-8 rounded-full bg-muted border border-border text-muted-foreground flex items-center justify-center font-semibold text-xs">
+                    2
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-muted-foreground leading-none">Bank Parser</p>
+                    <p class="text-[10px] text-muted-foreground/80 mt-0.5">Universal Auto-detect</p>
+                </div>
+            </div>
+
+            <!-- Divider -->
+            <div class="flex-1 h-0.5 bg-border mx-4"></div>
+
+            <!-- Step 3: AI Vectorize -->
+            <div class="flex items-center gap-3">
+                <div class="size-8 rounded-full bg-muted border border-border text-muted-foreground flex items-center justify-center font-semibold text-xs">
+                    3
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-muted-foreground leading-none">AI Indexing</p>
+                    <p class="text-[10px] text-muted-foreground/80 mt-0.5">Categorization & Copilot</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Statement Frame -->
+    <div class="coss-frame" data-slot="frame">
+        <div class="coss-frame-header">
+            <div>
+                <h1 class="coss-frame-title text-lg">Upload Bank Statement</h1>
+                <p class="coss-frame-desc">Upload your account statement to parse transactions and auto-categorize spending</p>
+            </div>
+            <span class="coss-badge coss-badge-primary" data-slot="badge">
+                Universal Parser v2.0
+            </span>
+        </div>
+
+        <div class="coss-frame-panel sm:p-8">
+            <form method="post" enctype="multipart/form-data" class="space-y-6" id="uploadForm">
                 {% csrf_token %}
                 
-                <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-indigo-500 transition-colors">
-                    <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                    </svg>
-                    {{ form.file }}
-                    <p class="mt-2 text-sm text-gray-600">Click to upload or drag and drop</p>
-                    <p class="text-xs text-gray-500 mt-1">Supports PDF, Excel (.xlsx, .xls), and CSV files (max 10MB)</p>
-                </div>
-
-                <div class="bg-indigo-50 border border-indigo-200 p-4 rounded-lg">
-                    <div class="flex">
-                        <svg class="h-5 w-5 text-indigo-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                <!-- Interactive Drag & Drop Zone -->
+                <div class="border-2 border-dashed border-border hover:border-primary rounded-xl p-8 sm:p-10 text-center transition-colors bg-muted/20 relative cursor-pointer" onclick="document.getElementById('file-upload-input').click()">
+                    <div class="coss-icon-tile size-12 rounded-2xl bg-card border border-border flex items-center justify-center mx-auto text-primary mb-3 shadow-coss-xs" data-slot="avatar">
+                        <svg class="size-6" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                         </svg>
-                        <div>
-                            <p class="text-sm font-medium text-indigo-900">Universal Bank Statement Parser</p>
-                            <p class="text-sm text-indigo-700 mt-1">Works with all Nigerian banks - No need to specify your bank!</p>
-                        </div>
+                    </div>
+                    
+                    <div class="space-y-1">
+                        <p class="text-sm font-semibold text-foreground" id="file-chosen-label">
+                            Click to select a statement or drag and drop here
+                        </p>
+                        <p class="text-xs text-muted-foreground tabular-nums">
+                            Supports PDF, Excel (.xlsx, .xls), and CSV files (max 10MB)
+                        </p>
+                    </div>
+
+                    <!-- Hidden actual input styled via script -->
+                    <div class="mt-4 flex justify-center">
+                        <input type="file" name="file" id="file-upload-input" class="text-xs text-muted-foreground file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer" onchange="handleFileSelected(this)" required>
                     </div>
                 </div>
 
+                <!-- Universal Parser Note Alert -->
+                <div class="coss-alert coss-alert-info" data-slot="alert">
+                    <div class="size-6 rounded-md bg-info text-info-foreground flex items-center justify-center shrink-0 mt-0.5">
+                        <svg class="size-3.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-foreground">Universal Multi-Bank Format Recognition</p>
+                        <p class="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                            No need to choose your bank manually. The parser automatically detects column headers, transaction date formats, and narrations for GTBank, Zenith, Access, Kuda, Moniepoint, OPay, FirstBank, UBA, Stanbic, and all Nigerian commercial banks.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Existing Upload Warning/Replacement Option -->
                 {% if existing_uploads > 0 %}
-                <div class="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
-                    <div class="flex items-start">
-                        <svg class="h-5 w-5 text-yellow-600 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <div class="coss-alert coss-alert-warning" data-slot="alert">
+                    <div class="size-6 rounded-md bg-warning text-warning-foreground flex items-center justify-center shrink-0 mt-0.5">
+                        <svg class="size-3.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                             <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
                         </svg>
-                        <div class="flex-1">
-                            <p class="text-sm font-medium text-yellow-900">You have {{ existing_uploads }} existing statement(s)</p>
-                            <p class="text-sm text-yellow-700 mt-1">New transactions will be added. Duplicates will be skipped.</p>
-                            <div class="mt-3">
-                                <label class="flex items-center cursor-pointer">
-                                    <input type="checkbox" name="replace_existing" class="form-checkbox h-4 w-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500">
-                                    <span class="ml-2 text-sm font-medium text-yellow-900">Replace all existing data with this statement</span>
-                                </label>
-                            </div>
-                        </div>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-xs font-bold text-foreground">
+                            You currently have <span class="tabular-nums font-extrabold">{{ existing_uploads }}</span> statement(s) loaded
+                        </p>
+                        <p class="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                            Uploading will append new transactions and automatically skip duplicates. Check the box below if you wish to wipe existing statements first.
+                        </p>
+                        <label class="mt-2.5 flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" name="replace_existing" class="size-4 text-primary rounded border-input focus:ring-ring">
+                            <span class="text-xs font-semibold text-foreground">Replace all existing statement data with this file</span>
+                        </label>
                     </div>
                 </div>
                 {% endif %}
 
-                <div class="flex items-center justify-between mt-6">
-                    <a href="{% url 'dashboard' %}" class="text-indigo-600 hover:text-indigo-900">
-                        Back to Dashboard
+                <!-- Form Action Buttons -->
+                <div class="flex items-center justify-between pt-2">
+                    <a href="{% url 'dashboard' %}" class="coss-button coss-button-ghost" data-slot="button">
+                        ← Back to Dashboard
                     </a>
-                    <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
-                        Upload Statement
+                    <button type="submit" class="coss-button coss-button-primary" data-slot="button">
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
+                        Parse & Upload Statement
                     </button>
                 </div>
             </form>
         </div>
     </div>
 
-    <div class="mt-8 bg-white shadow-lg rounded-lg overflow-hidden">
-        <div class="px-6 py-8">
-            <h3 class="text-xl font-semibold text-gray-900 mb-4">Tips for successful upload:</h3>
-            <ul class="space-y-4 text-gray-600">
-                <li class="flex items-start">
-                    <svg class="h-6 w-6 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span>Ensure your PDF is not password protected</span>
-                </li>
-                <li class="flex items-start">
-                    <svg class="h-6 w-6 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span>Statement should be in the original format from your bank</span>
-                </li>
-                <li class="flex items-start">
-                    <svg class="h-6 w-6 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span>Maximum file size: 10MB</span>
-                </li>
-            </ul>
+    <!-- Supported Banks Grid Frame -->
+    <div class="coss-frame" data-slot="frame">
+        <div class="coss-frame-header">
+            <div>
+                <h3 class="coss-frame-title text-sm">Supported Nigerian Financial Institutions</h3>
+                <p class="coss-frame-desc">All official e-statements and exports tested & validated</p>
+            </div>
+        </div>
+        <div class="coss-frame-panel">
+            <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2.5">
+                <div class="bg-muted/50 border border-border rounded-lg p-2.5 text-center text-xs font-medium text-foreground">GTBank</div>
+                <div class="bg-muted/50 border border-border rounded-lg p-2.5 text-center text-xs font-medium text-foreground">Zenith Bank</div>
+                <div class="bg-muted/50 border border-border rounded-lg p-2.5 text-center text-xs font-medium text-foreground">Access Bank</div>
+                <div class="bg-muted/50 border border-border rounded-lg p-2.5 text-center text-xs font-medium text-foreground">Kuda Bank</div>
+                <div class="bg-muted/50 border border-border rounded-lg p-2.5 text-center text-xs font-medium text-foreground">Moniepoint</div>
+                <div class="bg-muted/50 border border-border rounded-lg p-2.5 text-center text-xs font-medium text-foreground">OPay</div>
+                <div class="bg-muted/50 border border-border rounded-lg p-2.5 text-center text-xs font-medium text-foreground">First Bank</div>
+                <div class="bg-muted/50 border border-border rounded-lg p-2.5 text-center text-xs font-medium text-foreground">UBA</div>
+                <div class="bg-muted/50 border border-border rounded-lg p-2.5 text-center text-xs font-medium text-foreground">Stanbic IBTC</div>
+                <div class="bg-muted/50 border border-border rounded-lg p-2.5 text-center text-xs font-medium text-foreground">Fidelity & Others</div>
+            </div>
         </div>
     </div>
 </div>
+
+<script>
+function handleFileSelected(input) {
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+        document.getElementById('file-chosen-label').innerHTML = `<i class="hgi-stroke hgi-file-02 mr-1 text-primary"></i> <strong>${file.name}</strong> (${sizeMb} MB) ready to upload`;
+    }
+}
+</script>
 {% endblock %}

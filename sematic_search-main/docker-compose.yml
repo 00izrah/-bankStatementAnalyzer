@@ -1,0 +1,15 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16 # PostgreSQL 16 with pgvector pre-installed
+    container_name: pdf_vector_db
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=vector_db
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=password # Change this for production!
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

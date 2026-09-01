@@ -86,7 +86,33 @@ class UploadService:
                     transaction_count=self.stats['transactions_created']
                 )
                 
-                return uploaded_file, self.stats
+                result_file = uploaded_file
+
+            # Optional AI Categorization fallback for 'Other' / uncategorized transactions
+            try:
+                from django.conf import settings
+                if getattr(settings, 'GROQ_API_KEY', None):
+                    CategorizationService.bulk_ai_categorize_user_transactions(
+                        user=self.user,
+                        only_uncategorized=True,
+                        max_transactions=60,
+                        batch_size=30
+                    )
+            except Exception as e:
+                logger.warning(f"Post-upload AI categorization pass failed (non-critical): {e}")
+
+            # Index new transactions for semantic search (outside atomic block)
+            try:
+                from .vector_store import VectorStoreService
+                vector_store = VectorStoreService(self.user)
+                new_txns = Transaction.objects.filter(uploaded_file=result_file)
+                indexed = vector_store.add_transactions(new_txns)
+                logger.info(f"Indexed {indexed} transactions for semantic search")
+            except Exception as e:
+                # Vector indexing failure should never block the upload
+                logger.warning(f"Vector indexing failed (non-critical): {e}")
+
+            return result_file, self.stats
                 
         except IntegrityError as e:
             logger.error(f"Database integrity error during upload: {e}")

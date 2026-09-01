@@ -4,57 +4,158 @@
 {% block title %}Manage Categories - Bank Statement Analyzer{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="grid grid-cols-1 gap-8 md:grid-cols-2">
-        <!-- New Category Form -->
-        <div class="bg-white shadow-lg rounded-lg overflow-hidden">
-            <div class="px-6 py-8">
-                <h2 class="text-2xl font-bold text-gray-900 mb-6">Create New Category</h2>
-                <form method="post">
-                    {% csrf_token %}
-                    {{ form|crispy }}
-                    <div class="mt-6">
-                        <button type="submit" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
-                            Create Category
-                        </button>
+<div class="max-w-7xl mx-auto space-y-6">
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <!-- Left Column: AI Auto-Categorizer & Create Category Frame -->
+        <div class="space-y-6">
+            <!-- coss UI AI Auto-Categorizer Card -->
+            <div class="bg-slate-900 rounded-xl border border-slate-800 shadow-coss-md text-white p-6" data-slot="card">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="size-8 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+                        <svg class="size-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/>
+                        </svg>
                     </div>
-                </form>
+                    <div>
+                        <h2 class="text-base font-bold text-white tracking-tight">AI Auto-Categorization</h2>
+                        <p class="text-[11px] text-slate-400">Groq LLM Narrations Classifier</p>
+                    </div>
+                </div>
+                
+                <p class="text-xs text-slate-300 leading-relaxed mb-4">
+                    Have transactions sitting in <strong>"Other"</strong> or uncategorized? The AI engine inspects your Nigerian bank narrations, matches payees, and automatically sorts them into appropriate budget categories.
+                </p>
+
+                <div>
+                    <button id="ai-categorize-btn" onclick="runAiCategorization()" 
+                        class="coss-button coss-button-primary w-full shadow-coss-xs disabled:opacity-50" data-slot="button">
+                        <svg id="ai-cat-spinner" class="size-3.5 hidden animate-spin text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        <span id="ai-cat-btn-text"><i class="hgi-stroke hgi-ai-magic mr-1"></i> Run AI Auto-Categorization</span>
+                    </button>
+                </div>
+                
+                <div id="ai-cat-result" class="hidden mt-3 text-xs p-3 rounded-lg bg-slate-800 border border-slate-700 text-pretty tabular-nums"></div>
+            </div>
+
+            <!-- coss UI Create Category Frame -->
+            <div class="coss-frame" data-slot="frame">
+                <div class="coss-frame-header">
+                    <div>
+                        <h2 class="coss-frame-title text-base">Create Custom Category</h2>
+                        <p class="coss-frame-desc">Define rules and keywords for custom transaction grouping</p>
+                    </div>
+                </div>
+                <div class="coss-frame-panel">
+                    <form method="post" class="space-y-4">
+                        {% csrf_token %}
+                        {{ form|crispy }}
+                        <div class="pt-2">
+                            <button type="submit" class="coss-button coss-button-primary w-full shadow-coss-xs" data-slot="button">
+                                Save Category
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
 
-        <!-- Categories List -->
-        <div class="bg-white shadow-lg rounded-lg overflow-hidden">
-            <div class="px-6 py-8">
-                <h2 class="text-2xl font-bold text-gray-900 mb-6">Existing Categories</h2>
-                <div class="space-y-4">
-                    {% for category in categories %}
-                    <div class="border rounded-lg p-4 {% if category.is_system %}bg-gray-50{% endif %}">
-                        <div class="flex items-center justify-between">
-                            <h3 class="text-lg font-medium text-gray-900">{{ category.name }}</h3>
-                            {% if category.is_system %}
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                System
-                            </span>
-                            {% endif %}
-                        </div>
-                        <p class="mt-1 text-sm text-gray-500">{{ category.description }}</p>
-                        {% if category.keywords %}
-                        <div class="mt-2">
-                            <h4 class="text-sm font-medium text-gray-700">Keywords:</h4>
-                            <div class="mt-1 flex flex-wrap gap-2">
-                                {% for keyword in category.keyword_list %}
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                                    {{ keyword }}
-                                </span>
-                                {% endfor %}
-                            </div>
-                        </div>
+        <!-- Right Column: coss UI Categories List Frame -->
+        <div class="coss-frame" data-slot="frame">
+            <div class="coss-frame-header">
+                <div>
+                    <h2 class="coss-frame-title text-base">Existing Categories</h2>
+                    <p class="coss-frame-desc">System presets and your customized category rules</p>
+                </div>
+                <span class="coss-badge coss-badge-secondary tabular-nums" data-slot="badge">
+                    {{ categories|length }} Categories
+                </span>
+            </div>
+            <div class="coss-frame-panel space-y-3 max-h-[750px] overflow-y-auto">
+                {% for category in categories %}
+                <div class="border border-border rounded-lg p-4 {% if category.is_system %}bg-muted/40{% else %}bg-card{% endif %} transition-colors hover:border-primary/40">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xs font-bold text-foreground">{{ category.name }}</h3>
+                        {% if category.is_system %}
+                        <span class="coss-badge coss-badge-outline uppercase" data-slot="badge">
+                            System
+                        </span>
+                        {% else %}
+                        <span class="coss-badge coss-badge-primary uppercase" data-slot="badge">
+                            Custom
+                        </span>
                         {% endif %}
                     </div>
-                    {% endfor %}
+                    {% if category.description %}
+                    <p class="mt-1 text-xs text-muted-foreground leading-relaxed">{{ category.description }}</p>
+                    {% endif %}
+                    {% if category.keywords %}
+                    <div class="mt-2.5">
+                        <div class="flex flex-wrap gap-1.5">
+                            {% for keyword in category.keyword_list %}
+                            <span class="coss-badge coss-badge-primary text-[10px]" data-slot="badge">
+                                {{ keyword }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
+                {% empty %}
+                <p class="text-xs text-muted-foreground text-center py-8">No categories available.</p>
+                {% endfor %}
             </div>
         </div>
     </div>
 </div>
+
+<script>
+async function runAiCategorization() {
+    const btn = document.getElementById('ai-categorize-btn');
+    const spinner = document.getElementById('ai-cat-spinner');
+    const btnText = document.getElementById('ai-cat-btn-text');
+    const resultBox = document.getElementById('ai-cat-result');
+
+    btn.disabled = true;
+    spinner.classList.remove('hidden');
+    btnText.innerHTML = '<i class="hgi-stroke hgi-loading-03 animate-spin mr-1"></i> Sorting with Groq AI...';
+    resultBox.classList.add('hidden');
+
+    try {
+        const response = await fetch('/api/categories/ai-categorize/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}',
+            },
+            body: JSON.stringify({
+                only_uncategorized: true,
+                max_transactions: 100,
+            })
+        });
+
+        const data = await response.json();
+        spinner.classList.add('hidden');
+        btn.disabled = false;
+        btnText.innerHTML = '<i class="hgi-stroke hgi-ai-magic mr-1"></i> Run AI Auto-Categorization';
+
+        resultBox.classList.remove('hidden');
+        if (data.updated > 0) {
+            resultBox.className = 'mt-3 text-xs p-3 rounded-lg bg-emerald-950 border border-emerald-800 text-emerald-200 tabular-nums';
+            resultBox.innerHTML = `<i class="hgi-stroke hgi-checkmark-circle-02 text-sm mr-1"></i> <strong>Success!</strong> AI categorized <strong>${data.updated}</strong> transactions and updated semantic vector indexes.`;
+        } else {
+            resultBox.className = 'mt-3 text-xs p-3 rounded-lg bg-slate-800 border border-slate-700 text-slate-200';
+            resultBox.innerHTML = `<i class="hgi-stroke hgi-information-circle text-sm mr-1"></i> ${data.message || 'All transactions are already categorized.'}`;
+        }
+    } catch (err) {
+        spinner.classList.add('hidden');
+        btn.disabled = false;
+        btnText.innerHTML = '<i class="hgi-stroke hgi-ai-magic mr-1"></i> Run AI Auto-Categorization';
+        resultBox.classList.remove('hidden');
+        resultBox.className = 'mt-3 text-xs p-3 rounded-lg bg-rose-950 border border-rose-800 text-rose-200';
+        resultBox.innerHTML = `<i class="hgi-stroke hgi-cancel-circle text-sm mr-1"></i> Error running AI categorization: ${err.message || 'Please check your connection and GROQ_API_KEY.'}`;
+    }
+}
+</script>
 {% endblock %}

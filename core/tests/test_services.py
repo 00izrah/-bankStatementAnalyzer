@@ -96,6 +96,30 @@ class CategorizationServiceTest(TestCase):
         self.assertEqual(cat_out, self.cat_transport)
         self.assertEqual(merchant, "Bolt")
 
+    def test_parse_json_from_llm(self):
+        # 1. Standard markdown codeblock JSON
+        s1 = '```json\n[{"id": 1, "category_name": "Food & Dining", "clean_merchant": "Chowdeck"}]\n```'
+        p1 = CategorizationService._parse_json_from_llm(s1)
+        self.assertEqual(len(p1), 1)
+        self.assertEqual(p1[0]['category_name'], 'Food & Dining')
+
+        # 2. Qwen reasoning think tag wrapper
+        s2 = '<think>I need to categorize this</think>\n{"results": [{"id": 2, "category_name": "Transportation", "clean_merchant": "Uber"}]}'
+        p2 = CategorizationService._parse_json_from_llm(s2)
+        self.assertEqual(len(p2), 1)
+        self.assertEqual(p2[0]['category_name'], 'Transportation')
+
+        # 3. Multiple JSON objects
+        s3 = '{"id": 3, "category_name": "Utilities"}\n{"id": 4, "category_name": "Shopping"}'
+        p3 = CategorizationService._parse_json_from_llm(s3)
+        self.assertEqual(len(p3), 2)
+
+    def test_bulk_ai_categorize_user_transactions_no_uncategorized(self):
+        user = User.objects.create_user(username='aiuser', password='password123')
+        res = CategorizationService.bulk_ai_categorize_user_transactions(user=user)
+        self.assertEqual(res['processed'], 0)
+        self.assertEqual(res['updated'], 0)
+
 
 class AnalyticsServiceTest(TestCase):
     def setUp(self):

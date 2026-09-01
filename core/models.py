@@ -106,6 +106,31 @@ class Transaction(models.Model):
         super().save(*args, **kwargs)
 
 
+class ChatMessage(models.Model):
+    """Stores conversation history for the AI Copilot."""
+    ROLE_CHOICES = [
+        ('user', 'User'),
+        ('assistant', 'Assistant'),
+        ('system', 'System'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chat_messages')
+    session_id = models.CharField(max_length=64, db_index=True, default='default')
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES)
+    content = models.TextField()
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+        indexes = [
+            models.Index(fields=['user', 'session_id', 'created_at']),
+        ]
+
+    def __str__(self):
+        return f"[{self.role}] {self.content[:50]}..."
+
+
 @models.signals.post_delete.connect
 def auto_delete_file_on_delete(sender, instance, **kwargs):
     """Automatically delete physical file from storage when UploadedFile record is deleted."""

@@ -223,3 +223,16 @@ LOGGING = {
 # Create logs directory if it doesn't exist
 LOGS_DIR = BASE_DIR / 'logs'
 LOGS_DIR.mkdir(exist_ok=True)
+
+# AI Copilot & Semantic Search Configuration
+GROQ_API_KEY = os.getenv('GROQ_API_KEY', '')
+EMBEDDING_MODEL_NAME = os.getenv('EMBEDDING_MODEL', 'all-MiniLM-L6-v2')
+EMBEDDING_DIMENSION = 384  # Matches all-MiniLM-L6-v2 output
+FAISS_INDEX_DIR = BASE_DIR / 'media' / 'vector_indexes'
+FAISS_INDEX_DIR.mkdir(parents=True, exist_ok=True)
+COPILOT_LLM_MODEL = os.getenv('COPILOT_LLM_MODEL', 'openai/gpt-oss-120b')
+COPILOT_FAST_MODEL = os.getenv('COPILOT_FAST_MODEL', 'openai/gpt-oss-20b')
+COPILOT_FALLBACK_MODEL = os.getenv('COPILOT_FALLBACK_MODEL', 'openai/gpt-oss-20b')
+COPILOT_MAX_HISTORY = int(os.getenv('COPILOT_MAX_HISTORY', '6'))
+AI_RATE_LIMIT_CHAT_PER_MIN = int(os.getenv('AI_RATE_LIMIT_CHAT_PER_MIN', '15'))
+AI_RATE_LIMIT_BATCH_PER_MIN = int(os.getenv('AI_RATE_LIMIT_BATCH_PER_MIN', '5'))

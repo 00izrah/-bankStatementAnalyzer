@@ -5,326 +5,541 @@
 {% block title %}Dashboard - Bank Statement Analyzer{% endblock %}
 
 {% block content %}
-<div class="bg-white shadow-lg rounded-lg overflow-hidden mb-6">
-    <div class="px-6 py-8">
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-            <h1 class="text-2xl font-bold text-gray-900">Financial Dashboard</h1>
-            <div class="flex flex-wrap items-center gap-2">
-                <form method="get" class="flex items-center space-x-2">
-                    {% if search_query %}<input type="hidden" name="q" value="{{ search_query }}">{% endif %}
-                    {% if category_filter %}<input type="hidden" name="category" value="{{ category_filter }}">{% endif %}
-                    <select name="date_range" onchange="this.form.submit()" class="rounded-md border-gray-300 shadow-sm text-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                        <option value="all" {% if date_filter == 'all' %}selected{% endif %}>All Time</option>
-                        <option value="month" {% if date_filter == 'month' %}selected{% endif %}>Last 30 Days</option>
-                        <option value="3months" {% if date_filter == '3months' %}selected{% endif %}>Last 3 Months</option>
-                        <option value="6months" {% if date_filter == '6months' %}selected{% endif %}>Last 6 Months</option>
-                        <option value="year" {% if date_filter == 'year' %}selected{% endif %}>Last Year</option>
-                    </select>
-                </form>
-                {% if files %}
-                <div class="flex items-center space-x-2">
-                    <a href="{% url 'export_transactions_csv' %}?date_range={{ date_filter }}&q={{ search_query }}&category={{ category_filter }}" class="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" title="Export as CSV">
-                        <svg class="h-4 w-4 mr-1 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                        </svg>
-                        CSV
-                    </a>
-                    <a href="{% url 'export_transactions_json' %}?date_range={{ date_filter }}&q={{ search_query }}&category={{ category_filter }}" class="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" title="Export as JSON">
-                        JSON
-                    </a>
-                </div>
-                {% endif %}
-            </div>
+<div class="space-y-6">
+    <!-- Top Action Bar & Date Range Presets -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-card p-4 rounded-xl border border-border shadow-coss-xs" data-slot="card">
+        <div>
+            <h1 class="text-xl font-bold text-foreground tracking-tight">Financial Dashboard</h1>
+            <p class="text-xs text-muted-foreground mt-0.5">Comprehensive analytics, transaction ledger, and AI advisory.</p>
         </div>
+        
+        <div class="flex flex-wrap items-center gap-2">
+            <!-- Date Filter Form / Segmented Control -->
+            <form method="get" class="flex items-center gap-1.5" id="dateFilterForm">
+                {% if search_query %}<input type="hidden" name="q" value="{{ search_query }}">{% endif %}
+                {% if category_filter %}<input type="hidden" name="category" value="{{ category_filter }}">{% endif %}
+                
+                <div class="coss-segmented-control" data-slot="segmented-control">
+                    <button type="submit" name="date_range" value="all" class="coss-segmented-item {% if date_filter == 'all' or not date_filter %}active{% endif %}">All Time</button>
+                    <button type="submit" name="date_range" value="month" class="coss-segmented-item {% if date_filter == 'month' %}active{% endif %}">30 Days</button>
+                    <button type="submit" name="date_range" value="3months" class="coss-segmented-item {% if date_filter == '3months' %}active{% endif %}">3 Months</button>
+                    <button type="submit" name="date_range" value="6months" class="coss-segmented-item {% if date_filter == '6months' %}active{% endif %}">6 Months</button>
+                    <button type="submit" name="date_range" value="year" class="coss-segmented-item {% if date_filter == 'year' %}active{% endif %}">1 Year</button>
+                </div>
+            </form>
 
-        {% if not files %}
-        <div class="text-center py-12">
-            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <h3 class="mt-2 text-sm font-medium text-gray-900">No statements uploaded yet</h3>
-            <p class="mt-1 text-sm text-gray-500">Get started by uploading your first bank statement.</p>
+            {% if files %}
+            <div class="flex items-center gap-1.5 pl-2 border-l border-border">
+                <a href="{% url 'export_transactions_csv' %}?date_range={{ date_filter }}&q={{ search_query }}&category={{ category_filter }}" class="coss-button coss-button-outline coss-button-sm shadow-coss-xs" title="Export as CSV" aria-label="Export transactions as CSV" data-slot="button">
+                    <svg class="size-3.5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <span>CSV</span>
+                </a>
+                <a href="{% url 'export_transactions_json' %}?date_range={{ date_filter }}&q={{ search_query }}&category={{ category_filter }}" class="coss-button coss-button-outline coss-button-sm shadow-coss-xs" title="Export as JSON" aria-label="Export transactions as JSON" data-slot="button">
+                    <span>JSON</span>
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if not files %}
+    <!-- Empty State Frame -->
+    <div class="coss-frame" data-slot="frame">
+        <div class="coss-empty">
+            <div class="coss-empty-icon" data-slot="avatar">
+                <svg class="size-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+            </div>
+            <h2 class="coss-empty-title">No bank statements uploaded yet</h2>
+            <p class="coss-empty-desc">
+                Upload your account statement in PDF, Excel (.xlsx), or CSV format to unlock AI spending insights, categorized cash flow, and financial health metrics.
+            </p>
             <div class="mt-6">
-                <a href="{% url 'upload' %}" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                    Upload Statement
+                <a href="{% url 'upload' %}" class="coss-button coss-button-primary coss-button-lg shadow-coss-sm" data-slot="button">
+                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    Upload First Statement
                 </a>
             </div>
         </div>
-        {% else %}
+    </div>
+    {% else %}
 
-        <!-- Key Statistics -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <div class="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl p-5 text-white shadow-md">
-                <h3 class="text-xs uppercase tracking-wider font-semibold opacity-80">Total Spending</h3>
-                <p class="text-2xl font-bold mt-1">₦{{ stats.total_spent|floatformat:2|intcomma }}</p>
-                <p class="text-xs opacity-75 mt-2">Discretionary: ₦{{ stats.real_spending|floatformat:2|intcomma }}</p>
-            </div>
-            <div class="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl p-5 text-white shadow-md">
-                <h3 class="text-xs uppercase tracking-wider font-semibold opacity-80">Total Income</h3>
-                <p class="text-2xl font-bold mt-1">₦{{ stats.total_income|floatformat:2|intcomma }}</p>
-                <p class="text-xs opacity-75 mt-2">Net Cash Flow: ₦{{ stats.net_flow|floatformat:2|intcomma }}</p>
-            </div>
-            <div class="bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl p-5 text-white shadow-md">
-                <h3 class="text-xs uppercase tracking-wider font-semibold opacity-80">Bank Charges & Levies</h3>
-                <p class="text-2xl font-bold mt-1">₦{{ stats.bank_charges_total|floatformat:2|intcomma }}</p>
-                <p class="text-xs opacity-75 mt-2">EMTL, Stamp Duty, SMS & fees</p>
-            </div>
-            <div class="bg-gradient-to-br from-rose-500 to-rose-600 rounded-xl p-5 text-white shadow-md">
-                <h3 class="text-xs uppercase tracking-wider font-semibold opacity-80">Largest Expense</h3>
-                <p class="text-2xl font-bold mt-1">₦{% if stats.largest_expense %}{{ stats.largest_expense.amount|abs_value|floatformat:2|intcomma }}{% else %}0.00{% endif %}</p>
-                <p class="text-xs opacity-75 mt-2 truncate">{{ stats.largest_expense.description|default:"None"|truncatechars:24 }}</p>
-            </div>
-        </div>
-
-        <!-- Charts & Merchants Section -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            <!-- Monthly Trend -->
-            <div class="bg-white rounded-xl shadow-lg p-6 lg:col-span-2">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Monthly Income vs Expenses</h3>
-                <canvas id="monthlyTrendChart" class="w-full" height="260"></canvas>
-            </div>
-
-            <!-- Category Distribution -->
-            <div class="bg-white rounded-xl shadow-lg p-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Spending by Category</h3>
-                <canvas id="categoryChart" class="w-full" height="260"></canvas>
-            </div>
-        </div>
-
-        <!-- Financial Intelligence & Insights Panel -->
-        <div class="bg-white rounded-xl shadow-lg p-6 mb-8 border border-gray-100">
-            <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center space-x-2">
-                    <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+    <!-- coss UI Metric Frame Tiles -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- 1. Total Spending -->
+        <div class="coss-card p-5 shadow-coss-xs relative overflow-hidden" data-slot="card">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Total Spending</span>
+                <div class="coss-icon-tile size-7 rounded-lg bg-rose-50 border border-rose-100 text-rose-600 dark:bg-rose-950/40 dark:border-rose-900" data-slot="avatar">
+                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 13l-5 5m0 0l-5-5m5 5V6" />
                     </svg>
-                    <h3 class="text-lg font-semibold text-gray-900">Financial Health & Insights</h3>
                 </div>
-                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold
-                    {% if insights.health_color == 'emerald' %}bg-emerald-100 text-emerald-800
-                    {% elif insights.health_color == 'indigo' %}bg-indigo-100 text-indigo-800
-                    {% elif insights.health_color == 'amber' %}bg-amber-100 text-amber-800
-                    {% else %}bg-rose-100 text-rose-800{% endif %}">
-                    ● {{ insights.health_status }}
+            </div>
+            <p class="text-2xl font-bold text-foreground mt-2 tabular-nums">₦{{ stats.total_spent|floatformat:2|intcomma }}</p>
+            <div class="mt-2 flex items-center justify-between text-[11px] text-muted-foreground pt-2 border-t border-border">
+                <span>Discretionary:</span>
+                <span class="font-semibold text-foreground tabular-nums">₦{{ stats.real_spending|floatformat:2|intcomma }}</span>
+            </div>
+        </div>
+
+        <!-- 2. Total Inflows -->
+        <div class="coss-card p-5 shadow-coss-xs relative overflow-hidden" data-slot="card">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Total Income</span>
+                <div class="coss-icon-tile size-7 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-600 dark:bg-emerald-950/40 dark:border-emerald-900" data-slot="avatar">
+                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12" />
+                    </svg>
+                </div>
+            </div>
+            <p class="text-2xl font-bold text-foreground mt-2 tabular-nums">₦{{ stats.total_income|floatformat:2|intcomma }}</p>
+            <div class="mt-2 flex items-center justify-between text-[11px] text-muted-foreground pt-2 border-t border-border">
+                <span>Net Cash Flow:</span>
+                <span class="font-semibold {% if stats.net_flow >= 0 %}text-success{% else %}text-destructive{% endif %} tabular-nums">
+                    ₦{{ stats.net_flow|floatformat:2|intcomma }}
                 </span>
             </div>
+        </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                    <p class="text-xs text-gray-500 font-medium">Net Savings Rate</p>
-                    <p class="text-xl font-bold text-gray-900 mt-1">{{ insights.savings_rate }}%</p>
-                    <p class="text-xs text-gray-500 mt-1">Income retained after expenses</p>
+        <!-- 3. Bank Charges -->
+        <div class="coss-card p-5 shadow-coss-xs relative overflow-hidden" data-slot="card">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Bank Charges & Fees</span>
+                <div class="coss-icon-tile size-7 rounded-lg bg-amber-50 border border-amber-100 text-amber-600 dark:bg-amber-950/40 dark:border-amber-900" data-slot="avatar">
+                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                 </div>
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                    <p class="text-xs text-gray-500 font-medium">Daily Burn Rate</p>
-                    <p class="text-xl font-bold text-gray-900 mt-1">₦{{ insights.daily_burn_rate|floatformat:2|intcomma }}</p>
-                    <p class="text-xs text-gray-500 mt-1">Average daily expenditure</p>
-                </div>
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                    <p class="text-xs text-gray-500 font-medium">Fixed & Recurring Bills</p>
-                    <p class="text-xl font-bold text-gray-900 mt-1">₦{{ insights.recurring_total|floatformat:2|intcomma }}</p>
-                    <p class="text-xs text-gray-500 mt-1">Utilities, airtime & subscriptions</p>
-                </div>
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                    <p class="text-xs text-gray-500 font-medium">Peak Spending Day</p>
-                    <p class="text-xl font-bold text-gray-900 mt-1">{{ insights.peak_day_name }}</p>
-                    <p class="text-xs text-gray-500 mt-1">₦{{ insights.peak_day_amount|floatformat:2|intcomma }} total spent</p>
-                </div>
+            </div>
+            <p class="text-2xl font-bold text-foreground mt-2 tabular-nums">₦{{ stats.bank_charges_total|floatformat:2|intcomma }}</p>
+            <div class="mt-2 flex items-center justify-between text-[11px] text-muted-foreground pt-2 border-t border-border">
+                <span>Levies:</span>
+                <span class="text-foreground">EMTL, VAT, SMS, Stamp Duty</span>
             </div>
         </div>
 
-        {% if top_merchants %}
-        <!-- Top Merchants / Payees -->
-        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Top Merchants & Payees</h3>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                {% for merchant in top_merchants %}
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-100 flex flex-col justify-between">
-                    <div>
-                        <span class="text-xs font-semibold px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded">#{{ forloop.counter }}</span>
-                        <p class="text-sm font-medium text-gray-900 mt-2 truncate" title="{{ merchant.name }}">{{ merchant.name }}</p>
+        <!-- 4. Largest Outflow -->
+        <div class="coss-card p-5 shadow-coss-xs relative overflow-hidden" data-slot="card">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Largest Outflow</span>
+                <div class="coss-icon-tile size-7 rounded-lg bg-purple-50 border border-purple-100 text-purple-600 dark:bg-purple-950/40 dark:border-purple-900" data-slot="avatar">
+                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                </div>
+            </div>
+            <p class="text-2xl font-bold text-foreground mt-2 tabular-nums">₦{% if stats.largest_expense %}{{ stats.largest_expense.amount|abs_value|floatformat:2|intcomma }}{% else %}0.00{% endif %}</p>
+            <div class="mt-2 text-[11px] text-muted-foreground truncate pt-2 border-t border-border" title="{{ stats.largest_expense.description|default:'None' }}">
+                <span class="text-foreground truncate">{{ stats.largest_expense.description|default:"None" }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- coss UI AI Copilot Executive Summary & Strategic Advisory Frame -->
+    <div id="ai-summary-card" class="bg-slate-900 rounded-xl p-6 text-white shadow-coss-md border border-slate-800" data-slot="card">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
+            <div class="flex items-center gap-3">
+                <div class="size-9 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center shrink-0">
+                    <svg class="size-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <h2 class="text-base font-bold text-white text-balance">AI Financial Health & Strategic Advisory</h2>
+                        <span id="ai-health-badge" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-950 text-indigo-300 border border-indigo-800 tabular-nums">
+                            Synthesizing...
+                        </span>
                     </div>
-                    <p class="text-base font-bold text-gray-800 mt-2">₦{{ merchant.total|floatformat:2|intcomma }}</p>
+                    <p class="text-xs text-slate-400 mt-0.5">Continuous analysis powered by Groq LLM & vector transaction insights</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button onclick="fetchAiSummary(true)" id="ai-refresh-btn" 
+                    class="coss-button coss-button-outline coss-button-sm text-slate-200 border-slate-700 hover:bg-slate-800 hover:text-white"
+                    title="Re-analyze statement" aria-label="Re-analyze statement with AI" data-slot="button">
+                    <svg id="ai-refresh-icon" class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    <span>Re-analyze</span>
+                </button>
+                <button onclick="askCopilotAboutSummary()" 
+                    class="coss-button coss-button-primary coss-button-sm shadow-coss-xs"
+                    aria-label="Open deep dive in AI Copilot" data-slot="button">
+                    <span><i class="hgi-stroke hgi-bubble-chat-typing mr-1"></i> Deep Dive</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading Skeleton -->
+        <div id="ai-summary-loading" class="py-6 space-y-4">
+            <div class="h-4 bg-slate-800 rounded-md w-3/4 animate-pulse"></div>
+            <div class="h-4 bg-slate-800 rounded-md w-5/6 animate-pulse"></div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                <div class="h-24 bg-slate-800/60 rounded-lg border border-slate-800 p-4 animate-pulse"></div>
+                <div class="h-24 bg-slate-800/60 rounded-lg border border-slate-800 p-4 animate-pulse"></div>
+            </div>
+        </div>
+
+        <!-- Content Area -->
+        <div id="ai-summary-content" class="hidden pt-5 space-y-5">
+            <!-- 1. Executive Summary -->
+            <div class="bg-slate-800/60 rounded-lg p-4 border border-slate-800">
+                <div class="flex items-center gap-2 mb-2">
+                    <i class="hgi-stroke hgi-clipboard text-indigo-400"></i>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-300">Executive Summary</h3>
+                </div>
+                <p id="ai-summary-text" class="text-xs sm:text-sm text-slate-200 leading-relaxed text-pretty tabular-nums font-normal"></p>
+            </div>
+
+            <!-- 2. Concerns & Tips Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <!-- Concerns -->
+                <div class="bg-slate-800/40 border border-slate-800 rounded-lg p-4">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="size-2 rounded-full bg-rose-500"></span>
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-rose-400">Key Vulnerabilities</h3>
+                    </div>
+                    <div id="ai-concerns-list" class="space-y-2.5"></div>
+                </div>
+
+                <!-- Tips -->
+                <div class="bg-slate-800/40 border border-slate-800 rounded-lg p-4">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="size-2 rounded-full bg-emerald-500"></span>
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-400">Strategic Improvements</h3>
+                    </div>
+                    <div id="ai-tips-list" class="space-y-2.5"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- coss UI Themed Charts Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Monthly Trend Line Chart -->
+        <div class="coss-frame lg:col-span-2" data-slot="frame">
+            <div class="coss-frame-header">
+                <div>
+                    <h3 class="coss-frame-title">Monthly Cash Flow Trend</h3>
+                    <p class="coss-frame-desc">Income inflows versus expense outflows across periods</p>
+                </div>
+            </div>
+            <div class="coss-frame-panel">
+                <canvas id="monthlyTrendChart" class="w-full" height="250"></canvas>
+            </div>
+        </div>
+
+        <!-- Category Distribution Doughnut Chart -->
+        <div class="coss-frame" data-slot="frame">
+            <div class="coss-frame-header">
+                <div>
+                    <h3 class="coss-frame-title">Category Breakdown</h3>
+                    <p class="coss-frame-desc">Distribution of spending across categories</p>
+                </div>
+            </div>
+            <div class="coss-frame-panel">
+                <canvas id="categoryChart" class="w-full" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- coss UI Financial Health Intelligence Panel -->
+    <div class="coss-frame" data-slot="frame">
+        <div class="coss-frame-header">
+            <div class="flex items-center gap-2.5">
+                <div class="coss-icon-tile size-7 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600 dark:bg-indigo-950/40 dark:border-indigo-900" data-slot="avatar">
+                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="coss-frame-title">Financial Health & Efficiency Indicators</h3>
+                    <p class="coss-frame-desc">Computed behavioural signals from your transaction data</p>
+                </div>
+            </div>
+            <span class="coss-badge
+                {% if insights.health_color == 'emerald' %}coss-badge-success
+                {% elif insights.health_color == 'indigo' %}coss-badge-primary
+                {% elif insights.health_color == 'amber' %}coss-badge-warning
+                {% else %}coss-badge-destructive{% endif %}" data-slot="badge">
+                <i class="hgi-stroke hgi-pulse text-xs mr-1"></i> {{ insights.health_status }}
+            </span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-5">
+            <div class="bg-muted/40 rounded-lg p-4 border border-border">
+                <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Net Savings Rate</p>
+                <p class="text-xl font-bold text-foreground mt-1 tabular-nums">{{ insights.savings_rate }}%</p>
+                <p class="text-xs text-muted-foreground mt-1">Income retained after outflows</p>
+            </div>
+            <div class="bg-muted/40 rounded-lg p-4 border border-border">
+                <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Daily Burn Rate</p>
+                <p class="text-xl font-bold text-foreground mt-1 tabular-nums">₦{{ insights.daily_burn_rate|floatformat:2|intcomma }}</p>
+                <p class="text-xs text-muted-foreground mt-1">Average daily expenditure</p>
+            </div>
+            <div class="bg-muted/40 rounded-lg p-4 border border-border">
+                <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Fixed & Recurring Bills</p>
+                <p class="text-xl font-bold text-foreground mt-1 tabular-nums">₦{{ insights.recurring_total|floatformat:2|intcomma }}</p>
+                <p class="text-xs text-muted-foreground mt-1">Utilities, airtime & subscriptions</p>
+            </div>
+            <div class="bg-muted/40 rounded-lg p-4 border border-border">
+                <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Peak Spending Day</p>
+                <p class="text-xl font-bold text-foreground mt-1">{{ insights.peak_day_name }}</p>
+                <p class="text-xs text-muted-foreground mt-1 tabular-nums">₦{{ insights.peak_day_amount|floatformat:2|intcomma }} spent</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Payees & Weekly Cadence -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {% if top_merchants %}
+        <!-- Top Payees Frame -->
+        <div class="coss-frame" data-slot="frame">
+            <div class="coss-frame-header">
+                <div>
+                    <h3 class="coss-frame-title">Top Payees & Merchants</h3>
+                    <p class="coss-frame-desc">Frequent transaction recipients by volume</p>
+                </div>
+            </div>
+            <div class="coss-frame-panel grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {% for merchant in top_merchants %}
+                <div class="bg-muted/40 rounded-lg p-3 border border-border flex items-center justify-between">
+                    <div class="min-w-0 pr-2">
+                        <div class="flex items-center gap-1.5">
+                            <span class="coss-badge coss-badge-primary text-[10px] tabular-nums" data-slot="badge">#{{ forloop.counter }}</span>
+                            <p class="text-xs font-semibold text-foreground truncate" title="{{ merchant.name }}">{{ merchant.name }}</p>
+                        </div>
+                    </div>
+                    <p class="text-xs font-bold text-foreground tabular-nums shrink-0">₦{{ merchant.total|floatformat:2|intcomma }}</p>
                 </div>
                 {% endfor %}
             </div>
         </div>
         {% endif %}
 
-        <!-- Weekly Pattern -->
-        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Weekly Spending Pattern</h3>
-            <canvas id="weeklyChart" height="100"></canvas>
-        </div>
-
-        <!-- Uploaded Statements Management -->
-        {% if files %}
-        <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
-            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                <h3 class="text-lg font-semibold text-gray-900">Uploaded Statements ({{ files|length }})</h3>
-                <form method="post" action="{% url 'clear_all_data' %}" onsubmit="return confirm('Are you sure you want to delete ALL statements and transactions? This cannot be undone!');">
-                    {% csrf_token %}
-                    <button type="submit" class="text-sm text-red-600 hover:text-red-800 font-medium">Clear All Data</button>
-                </form>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Upload Date</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transactions</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        {% for file in files %}
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {{ file.uploaded_at|date:"M d, Y H:i" }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                {{ file.transaction_count }} transactions
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                {% if file.processed %}
-                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Processed</span>
-                                {% else %}
-                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">Pending</span>
-                                {% endif %}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                <form method="post" action="{% url 'delete_statement' file.id %}" class="inline" onsubmit="return confirm('Delete this statement and its {{ file.transaction_count }} transactions?');">
-                                    {% csrf_token %}
-                                    <button type="submit" class="text-red-600 hover:text-red-900 font-medium">Delete</button>
-                                </form>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Recent Transactions -->
-        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <!-- Weekly Cadence Chart Frame -->
+        <div class="coss-frame {% if not top_merchants %}lg:col-span-2{% endif %}" data-slot="frame">
+            <div class="coss-frame-header">
                 <div>
-                    <h3 class="text-lg font-semibold text-gray-900">Transactions</h3>
-                    <p class="text-xs text-gray-500 mt-0.5">Showing {{ transactions.start_index|default:0 }} to {{ transactions.end_index|default:0 }} of {{ transactions.paginator.count }} transactions</p>
+                    <h3 class="coss-frame-title">Weekly Spending Rhythm</h3>
+                    <p class="coss-frame-desc">Aggregated spending velocity across calendar weeks</p>
                 </div>
-                <!-- Search & Category Filters -->
-                <form method="get" class="flex flex-wrap items-center gap-2 w-full md:w-auto">
-                    {% if date_filter %}<input type="hidden" name="date_range" value="{{ date_filter }}">{% endif %}
-                    <input type="text" name="q" value="{{ search_query }}" placeholder="Search narration..." class="rounded-md border-gray-300 shadow-sm text-xs px-3 py-1.5 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 flex-grow sm:flex-grow-0 sm:w-48">
-                    <select name="category" class="rounded-md border-gray-300 shadow-sm text-xs px-3 py-1.5 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                        <option value="">All Categories</option>
-                        <option value="uncategorized" {% if category_filter == 'uncategorized' %}selected{% endif %}>Uncategorized</option>
-                        {% for cat in user_categories %}
-                        <option value="{{ cat.id }}" {% if category_filter == cat.id|stringformat:"i" %}selected{% endif %}>{{ cat.name }}</option>
-                        {% endfor %}
-                    </select>
-                    <button type="submit" class="px-3 py-1.5 bg-indigo-600 text-white rounded-md text-xs font-medium hover:bg-indigo-700 focus:outline-none">
-                        Filter
-                    </button>
-                    {% if search_query or category_filter %}
-                    <a href="{% url 'dashboard' %}?date_range={{ date_filter }}" class="text-xs text-gray-500 hover:text-gray-700 underline">
-                        Clear
-                    </a>
-                    {% endif %}
-                </form>
             </div>
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        {% for transaction in transactions %}
-                        <tr class="hover:bg-gray-50 transition-colors">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {{ transaction.date|date:"M d, Y" }}
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-900">
-                                <div>
-                                    <span class="font-medium text-gray-900">{{ transaction.description }}</span>
-                                    {% if transaction.notes %}
-                                    <div class="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
-                                        <svg class="h-3.5 w-3.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
-                                        </svg>
-                                        <span>{{ transaction.notes }}</span>
-                                    </div>
-                                    {% endif %}
+            <div class="coss-frame-panel">
+                <canvas id="weeklyChart" height="130"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Uploaded Statements Management Frame -->
+    {% if files %}
+    <div class="coss-frame" data-slot="frame">
+        <div class="coss-frame-header">
+            <div>
+                <h3 class="coss-frame-title">Uploaded Statements <span class="text-xs font-normal text-muted-foreground tabular-nums">({{ files|length }} files)</span></h3>
+                <p class="coss-frame-desc">Manage processed files and vector indexes</p>
+            </div>
+            <form method="post" action="{% url 'clear_all_data' %}" onsubmit="return confirm('Are you sure you want to delete ALL statements and transactions? This cannot be undone!');">
+                {% csrf_token %}
+                <button type="submit" class="coss-button coss-button-destructive coss-button-sm" aria-label="Clear all data" data-slot="button">
+                    Clear All Data
+                </button>
+            </form>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="coss-table" data-slot="table">
+                <thead>
+                    <tr>
+                        <th>Statement File / Date</th>
+                        <th>Transactions</th>
+                        <th>Parser Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for file in files %}
+                    <tr>
+                        <td class="tabular-nums font-medium text-foreground">
+                            {{ file.uploaded_at|date:"M d, Y H:i" }}
+                        </td>
+                        <td class="tabular-nums text-muted-foreground">
+                            {{ file.transaction_count }} records
+                        </td>
+                        <td>
+                            {% if file.processed %}
+                            <span class="coss-badge coss-badge-success" data-slot="badge">
+                                <i class="hgi-stroke hgi-checkmark-circle-02 text-xs mr-1"></i> Processed
+                            </span>
+                            {% else %}
+                            <span class="coss-badge coss-badge-warning" data-slot="badge">
+                                <i class="hgi-stroke hgi-time-02 text-xs mr-1"></i> Pending
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <form method="post" action="{% url 'delete_statement' file.id %}" class="inline" onsubmit="return confirm('Delete this statement and its {{ file.transaction_count }} transactions?');">
+                                {% csrf_token %}
+                                <button type="submit" class="coss-button coss-button-ghost coss-button-sm text-destructive hover:bg-destructive/10" data-slot="button">
+                                    Delete
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- coss UI Advanced Data Grid Component (Transactions) -->
+    <div class="coss-frame" id="transactions-section" data-slot="frame">
+        <!-- Data Grid Header Toolbar -->
+        <div class="p-4 sm:p-5 border-b border-border bg-card flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <h3 class="text-base font-bold text-foreground tracking-tight">Transaction Ledger</h3>
+                <p class="text-xs text-muted-foreground mt-0.5 tabular-nums">
+                    Showing {{ transactions.start_index|default:0 }} to {{ transactions.end_index|default:0 }} of {{ transactions.paginator.count }} transactions
+                </p>
+            </div>
+
+            <!-- Multi-Facet Filters Bar -->
+            <form method="get" class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                {% if date_filter %}<input type="hidden" name="date_range" value="{{ date_filter }}">{% endif %}
+                
+                <!-- Search Input Group -->
+                <div class="coss-input-group sm:w-56" data-slot="input-group">
+                    <span class="coss-input-group-addon">
+                        <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </span>
+                    <input type="text" name="q" value="{{ search_query }}" placeholder="Filter narration..." class="coss-input" data-slot="input">
+                </div>
+
+                <!-- Category Select -->
+                <select name="category" class="coss-select w-auto py-1.5 pl-3 pr-8" data-slot="select">
+                    <option value="">All Categories</option>
+                    <option value="uncategorized" {% if category_filter == 'uncategorized' %}selected{% endif %}>Uncategorized</option>
+                    {% for cat in user_categories %}
+                    <option value="{{ cat.id }}" {% if category_filter == cat.id|stringformat:"i" %}selected{% endif %}>{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+
+                <button type="submit" class="coss-button coss-button-primary" data-slot="button">
+                    Apply
+                </button>
+
+                {% if search_query or category_filter %}
+                <a href="{% url 'dashboard' %}?date_range={{ date_filter }}" class="text-xs text-muted-foreground hover:text-foreground underline px-1.5">
+                    Reset
+                </a>
+                {% endif %}
+            </form>
+        </div>
+
+        <!-- Data Grid Table -->
+        <div class="overflow-x-auto">
+            <table class="coss-table" data-slot="table">
+                <thead>
+                    <tr>
+                        <th class="w-32">Date</th>
+                        <th>Narration / Details</th>
+                        <th class="w-36 text-right">Amount (₦)</th>
+                        <th class="w-40">Category</th>
+                        <th class="w-20 text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for transaction in transactions %}
+                    <tr class="transition-colors">
+                        <td class="tabular-nums font-medium text-foreground whitespace-nowrap">
+                            {{ transaction.date|date:"M d, Y" }}
+                        </td>
+                        <td class="max-w-md">
+                            <div>
+                                <span class="font-medium text-foreground line-clamp-2 leading-relaxed">{{ transaction.description }}</span>
+                                {% if transaction.notes %}
+                                <div class="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
+                                    <svg class="size-3 text-muted-foreground shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                                    </svg>
+                                    <span class="truncate">{{ transaction.notes }}</span>
                                 </div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium {% if transaction.amount < 0 %}text-red-600{% else %}text-green-600{% endif %}">
-                                ₦{{ transaction.amount|abs_value|floatformat:2|intcomma }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="px-2 py-1 text-xs font-semibold rounded-full 
-                                    {% if transaction.category %}
-                                        {% if transaction.amount < 0 %}bg-red-100 text-red-800{% else %}bg-green-100 text-green-800{% endif %}
-                                    {% else %}
-                                        bg-gray-100 text-gray-800
-                                    {% endif %}">
-                                    {{ transaction.category.name|default:"Uncategorized"|title }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <a href="{% url 'edit_transaction' transaction.id %}" class="text-indigo-600 hover:text-indigo-900">Edit</a>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="5" class="px-6 py-8 text-center text-sm text-gray-500">
-                                No transactions match the current filter criteria.
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="text-right whitespace-nowrap tabular-nums font-bold {% if transaction.amount < 0 %}text-destructive{% else %}text-success{% endif %}">
+                            ₦{{ transaction.amount|abs_value|floatformat:2|intcomma }}
+                        </td>
+                        <td class="whitespace-nowrap">
+                            <span class="coss-badge
+                                {% if transaction.category %}
+                                    {% if transaction.amount < 0 %}coss-badge-destructive{% else %}coss-badge-success{% endif %}
+                                {% else %}
+                                    coss-badge-outline
+                                {% endif %}" data-slot="badge">
+                                {{ transaction.category.name|default:"Uncategorized"|title }}
+                            </span>
+                        </td>
+                        <td class="text-center whitespace-nowrap">
+                            <a href="{% url 'edit_transaction' transaction.id %}" class="coss-button coss-button-ghost coss-button-icon text-muted-foreground hover:text-primary" title="Edit Category / Notes" aria-label="Edit transaction" data-slot="button">
+                                <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                </svg>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="py-12 text-center text-xs text-muted-foreground">
+                            No transactions match the specified filter criteria.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
 
-            <!-- Pagination Footer -->
-            {% if transactions.paginator.num_pages > 1 %}
-            <div class="px-6 py-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
-                <div class="text-xs text-gray-500">
-                    Page <span class="font-medium">{{ transactions.number }}</span> of <span class="font-medium">{{ transactions.paginator.num_pages }}</span>
-                </div>
-                <div class="flex items-center space-x-2">
-                    {% if transactions.has_previous %}
-                    <a href="?page={{ transactions.previous_page_number }}&date_range={{ date_filter }}&q={{ search_query }}&category={{ category_filter }}" class="px-3 py-1 bg-white border border-gray-300 rounded text-xs font-medium text-gray-700 hover:bg-gray-50">
-                        Previous
-                    </a>
-                    {% else %}
-                    <span class="px-3 py-1 bg-gray-100 border border-gray-200 rounded text-xs font-medium text-gray-400 cursor-not-allowed">
-                        Previous
-                    </span>
-                    {% endif %}
-
-                    {% if transactions.has_next %}
-                    <a href="?page={{ transactions.next_page_number }}&date_range={{ date_filter }}&q={{ search_query }}&category={{ category_filter }}" class="px-3 py-1 bg-white border border-gray-300 rounded text-xs font-medium text-gray-700 hover:bg-gray-50">
-                        Next
-                    </a>
-                    {% else %}
-                    <span class="px-3 py-1 bg-gray-100 border border-gray-200 rounded text-xs font-medium text-gray-400 cursor-not-allowed">
-                        Next
-                    </span>
-                    {% endif %}
-                </div>
+        <!-- coss DataGrid Pagination Footer -->
+        {% if transactions.paginator.num_pages > 1 %}
+        <div class="coss-frame-footer" data-slot="footer">
+            <div class="text-xs text-muted-foreground tabular-nums">
+                Page <strong class="text-foreground">{{ transactions.number }}</strong> of <strong class="text-foreground">{{ transactions.paginator.num_pages }}</strong>
             </div>
-            {% endif %}
+            <div class="flex items-center gap-1.5">
+                {% if transactions.has_previous %}
+                <a href="?page={{ transactions.previous_page_number }}&date_range={{ date_filter }}&q={{ search_query }}&category={{ category_filter }}" class="coss-button coss-button-outline coss-button-sm shadow-coss-xs" data-slot="button">
+                    Previous
+                </a>
+                {% else %}
+                <span class="coss-button coss-button-outline coss-button-sm opacity-40 cursor-not-allowed" data-slot="button">
+                    Previous
+                </span>
+                {% endif %}
+
+                {% if transactions.has_next %}
+                <a href="?page={{ transactions.next_page_number }}&date_range={{ date_filter }}&q={{ search_query }}&category={{ category_filter }}" class="coss-button coss-button-outline coss-button-sm shadow-coss-xs" data-slot="button">
+                    Next
+                </a>
+                {% else %}
+                <span class="coss-button coss-button-outline coss-button-sm opacity-40 cursor-not-allowed" data-slot="button">
+                    Next
+                </span>
+                {% endif %}
+            </div>
         </div>
         {% endif %}
     </div>
+    {% endif %}
 </div>
 
 {% if files %}
@@ -337,12 +552,10 @@
 {{ weekly_totals|json_script:"weekly-data" }}
 
 <script>
-    // Parse data safely from json_script tags
     const monthlyData = JSON.parse(document.getElementById('monthly-data').textContent);
     const categoryData = JSON.parse(document.getElementById('category-data').textContent);
     const weeklyData = JSON.parse(document.getElementById('weekly-data').textContent);
 
-    // Utility function for formatting currency
     const formatCurrency = (value) => {
         return '₦' + Math.abs(value).toLocaleString('en-NG', {
             minimumFractionDigits: 2,
@@ -350,60 +563,60 @@
         });
     };
 
-    // Monthly Trend Chart
+    // Monthly Trend Line Chart
     new Chart(document.getElementById('monthlyTrendChart'), {
         type: 'line',
         data: {
             labels: monthlyData.map(item => new Date(item.month).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })),
             datasets: [
                 {
-                    label: 'Income',
+                    label: 'Inflows',
                     data: monthlyData.map(item => item.income || 0),
                     borderColor: 'rgb(16, 185, 129)',
-                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                    tension: 0.4,
-                    fill: true
+                    backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                    tension: 0.35,
+                    fill: true,
+                    borderWidth: 2,
+                    pointRadius: 3
                 },
                 {
-                    label: 'Expenses',
+                    label: 'Outflows',
                     data: monthlyData.map(item => Math.abs(item.expenses || 0)),
                     borderColor: 'rgb(239, 68, 68)',
-                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                    tension: 0.4,
-                    fill: true
+                    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                    tension: 0.35,
+                    fill: true,
+                    borderWidth: 2,
+                    pointRadius: 3
                 }
             ]
         },
         options: {
             responsive: true,
-            interaction: {
-                intersect: false,
-                mode: 'index'
-            },
+            interaction: { intersect: false, mode: 'index' },
             plugins: {
-                legend: {
-                    position: 'top'
-                },
+                legend: { position: 'top', labels: { boxWidth: 10, font: { family: 'Inter', size: 11 } } },
                 tooltip: {
                     callbacks: {
-                        label: function(context) {
-                            return `${context.dataset.label}: ${formatCurrency(context.raw)}`;
-                        }
+                        label: (ctx) => `${ctx.dataset.label}: ${formatCurrency(ctx.raw)}`
                     }
                 }
             },
             scales: {
                 y: {
                     beginAtZero: true,
-                    ticks: {
-                        callback: formatCurrency
-                    }
+                    ticks: { callback: formatCurrency, font: { family: 'Inter', size: 10 } },
+                    grid: { color: 'rgba(243, 244, 246, 0.9)' }
+                },
+                x: {
+                    ticks: { font: { family: 'Inter', size: 10 } },
+                    grid: { display: false }
                 }
             }
         }
     });
 
-    // Category Distribution Chart
+    // Category Distribution Doughnut Chart
     new Chart(document.getElementById('categoryChart'), {
         type: 'doughnut',
         data: {
@@ -412,37 +625,37 @@
                 data: categoryData.map(item => item.total),
                 backgroundColor: [
                     'rgb(79, 70, 229)',
-                    'rgb(59, 130, 246)',
                     'rgb(16, 185, 129)',
                     'rgb(245, 158, 11)',
                     'rgb(239, 68, 68)',
+                    'rgb(59, 130, 246)',
                     'rgb(139, 92, 246)',
                     'rgb(236, 72, 153)',
                     'rgb(107, 114, 128)',
-                ]
+                ],
+                borderWidth: 0
             }]
         },
         options: {
             responsive: true,
             plugins: {
-                legend: {
-                    position: 'right'
-                },
+                legend: { position: 'bottom', labels: { boxWidth: 10, font: { family: 'Inter', size: 10 } } },
                 tooltip: {
                     callbacks: {
-                        label: function(context) {
-                            const value = formatCurrency(context.raw);
-                            const item = categoryData[context.dataIndex] || {};
-                            const percentage = item.percentage !== undefined ? item.percentage.toFixed(1) : '0.0';
-                            return `${context.label}: ${value} (${percentage}%)`;
+                        label: (ctx) => {
+                            const val = formatCurrency(ctx.raw);
+                            const item = categoryData[ctx.dataIndex] || {};
+                            const pct = item.percentage !== undefined ? item.percentage.toFixed(1) : '0.0';
+                            return `${ctx.label}: ${val} (${pct}%)`;
                         }
                     }
                 }
-            }
+            },
+            cutout: '68%'
         }
     });
 
-    // Weekly Pattern Chart
+    // Weekly Pattern Bar Chart
     new Chart(document.getElementById('weeklyChart'), {
         type: 'bar',
         data: {
@@ -450,34 +663,143 @@
             datasets: [{
                 label: 'Weekly Spending',
                 data: weeklyData.map(item => Math.abs(item.total)),
-                backgroundColor: 'rgba(79, 70, 229, 0.8)',
-                borderColor: 'rgb(79, 70, 229)',
-                borderWidth: 1
+                backgroundColor: 'rgba(99, 102, 241, 0.85)',
+                borderRadius: 6
             }]
         },
         options: {
             responsive: true,
             plugins: {
-                legend: {
-                    display: false
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return formatCurrency(context.raw);
-                        }
-                    }
-                }
+                legend: { display: false },
+                tooltip: { callbacks: { label: (ctx) => formatCurrency(ctx.raw) } }
             },
             scales: {
                 y: {
                     beginAtZero: true,
-                    ticks: {
-                        callback: formatCurrency
-                    }
+                    ticks: { callback: formatCurrency, font: { family: 'Inter', size: 10 } },
+                    grid: { color: 'rgba(243, 244, 246, 0.9)' }
+                },
+                x: {
+                    ticks: { font: { family: 'Inter', size: 10 } },
+                    grid: { display: false }
                 }
             }
         }
+    });
+
+    // ─── AI Dashboard Summary ───────────────────────────────────────
+    function fetchAiSummary(forceRefresh = false) {
+        const loadingEl = document.getElementById('ai-summary-loading');
+        const contentEl = document.getElementById('ai-summary-content');
+        const refreshIcon = document.getElementById('ai-refresh-icon');
+        const dateRange = '{{ date_filter }}';
+
+        if (!loadingEl || !contentEl) return;
+
+        loadingEl.classList.remove('hidden');
+        contentEl.classList.add('hidden');
+        if (refreshIcon) refreshIcon.classList.add('animate-spin');
+
+        fetch(`/api/copilot/dashboard-summary/?date_range=${encodeURIComponent(dateRange)}&force_refresh=${forceRefresh}`)
+            .then(res => res.json())
+            .then(data => {
+                if (refreshIcon) refreshIcon.classList.remove('animate-spin');
+                loadingEl.classList.add('hidden');
+                contentEl.classList.remove('hidden');
+
+                if (!data.available) {
+                    document.getElementById('ai-summary-text').textContent = data.message || 'No summary available.';
+                    return;
+                }
+
+                // Health grade badge
+                const badgeEl = document.getElementById('ai-health-badge');
+                if (badgeEl && data.health_label) {
+                    badgeEl.textContent = `Grade ${data.health_grade || 'B'} • ${data.health_label}`;
+                    if (data.health_grade === 'A+' || data.health_grade === 'A') {
+                        badgeEl.className = 'px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-950 text-emerald-300 border border-emerald-800 tabular-nums';
+                    } else if (data.health_grade === 'B') {
+                        badgeEl.className = 'px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-950 text-indigo-300 border border-indigo-800 tabular-nums';
+                    } else if (data.health_grade === 'C') {
+                        badgeEl.className = 'px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-950 text-amber-300 border border-amber-800 tabular-nums';
+                    } else {
+                        badgeEl.className = 'px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-950 text-rose-300 border border-rose-800 tabular-nums';
+                    }
+                }
+
+                document.getElementById('ai-summary-text').textContent = data.summary;
+
+                // Concerns
+                const concernsList = document.getElementById('ai-concerns-list');
+                concernsList.innerHTML = '';
+                if (data.concerns && data.concerns.length) {
+                    data.concerns.forEach(c => {
+                        const item = document.createElement('div');
+                        item.className = 'bg-slate-900 rounded-lg p-3 border border-slate-800';
+                        const sevColor = c.severity === 'high' ? 'bg-rose-950 text-rose-300 border border-rose-800' : 'bg-amber-950 text-amber-300 border border-amber-800';
+                        item.innerHTML = `
+                            <div class="flex items-center justify-between gap-2">
+                                <p class="text-xs font-bold text-rose-300">${escapeHtml(c.title)}</p>
+                                ${c.severity ? `<span class="text-[9px] uppercase px-1.5 py-0.5 rounded font-semibold ${sevColor}">${escapeHtml(c.severity)}</span>` : ''}
+                            </div>
+                            <p class="text-xs text-slate-300 mt-1 leading-relaxed">${escapeHtml(c.detail)}</p>
+                        `;
+                        concernsList.appendChild(item);
+                    });
+                } else {
+                    concernsList.innerHTML = '<p class="text-xs text-slate-400 italic">No significant financial risks detected for this period.</p>';
+                }
+
+                // Tips
+                const tipsList = document.getElementById('ai-tips-list');
+                tipsList.innerHTML = '';
+                if (data.tips && data.tips.length) {
+                    data.tips.forEach(t => {
+                        const item = document.createElement('div');
+                        item.className = 'bg-slate-900 rounded-lg p-3 border border-slate-800';
+                        item.innerHTML = `
+                            <div class="flex items-center justify-between gap-2">
+                                <p class="text-xs font-bold text-emerald-300"><i class="hgi-stroke hgi-idea-01 mr-1"></i> ${escapeHtml(t.title)}</p>
+                                ${t.potential_impact ? `<span class="text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 font-medium tabular-nums">${escapeHtml(t.potential_impact)}</span>` : ''}
+                            </div>
+                            <p class="text-xs text-slate-300 mt-1 leading-relaxed">${escapeHtml(t.detail)}</p>
+                        `;
+                        tipsList.appendChild(item);
+                    });
+                } else {
+                    tipsList.innerHTML = '<p class="text-xs text-slate-400 italic">Maintaining steady spending balance.</p>';
+                }
+            })
+            .catch(err => {
+                if (refreshIcon) refreshIcon.classList.remove('animate-spin');
+                loadingEl.classList.add('hidden');
+                contentEl.classList.remove('hidden');
+                document.getElementById('ai-summary-text').textContent = 'Unable to fetch AI analysis at this moment.';
+            });
+    }
+
+    function askCopilotAboutSummary() {
+        if (typeof toggleCopilot === 'function') {
+            if (!copilotOpen) toggleCopilot();
+            const input = document.getElementById('copilot-input');
+            if (input) {
+                input.value = "Can you give me a deep dive into the financial concerns and improvement tips from my statement?";
+                if (typeof autoResizeTextarea === 'function') autoResizeTextarea(input);
+                if (typeof sendCopilotMessage === 'function') {
+                    sendCopilotMessage(new Event('submit'));
+                }
+            }
+        }
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        fetchAiSummary(false);
     });
 </script>
 {% endif %}

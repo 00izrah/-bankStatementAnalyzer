@@ -3,19 +3,19 @@
 {% block title %}Access Forbidden - Bank Statement Analyzer{% endblock %}
 
 {% block content %}
-<div class="min-h-[70vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md w-full text-center space-y-6">
-        <p class="text-6xl font-extrabold text-yellow-600">403</p>
-        <h1 class="text-3xl font-bold text-gray-900">Access Forbidden</h1>
-        <p class="text-base text-gray-500">
-            You do not have permission to access this resource.
+<div class="flex items-center justify-center py-16 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full coss-frame text-center p-8 space-y-4 shadow-coss-md" data-slot="frame">
+        <p class="text-4xl font-extrabold text-warning font-mono tabular-nums">403</p>
+        <h1 class="text-xl font-bold text-foreground tracking-tight">Access Forbidden</h1>
+        <p class="text-xs text-muted-foreground text-pretty leading-relaxed">
+            You do not have permission to view this resource. Check your credentials or return to safety.
         </p>
-        <div class="mt-6 flex justify-center space-x-4">
-            <a href="{% url 'home' %}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
-                Go back home
+        <div class="pt-2 flex justify-center gap-2">
+            <a href="{% url 'home' %}" class="coss-button coss-button-primary shadow-coss-xs" data-slot="button">
+                Return Home
             </a>
             {% if user.is_authenticated %}
-            <a href="{% url 'dashboard' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+            <a href="{% url 'dashboard' %}" class="coss-button coss-button-outline shadow-coss-xs" data-slot="button">
                 Dashboard
             </a>
             {% endif %}
